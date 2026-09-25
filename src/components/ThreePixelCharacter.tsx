@@ -28,11 +28,8 @@ export const ThreePixelCharacter = ({
   const characterGroupRef = useRef<THREE.Group | null>(null);
   const rightArmRef = useRef<THREE.Group | null>(null);
   const leftArmRef = useRef<THREE.Group | null>(null);
-  const rightLegRef = useRef<THREE.Group | null>(null);
-  const leftLegRef = useRef<THREE.Group | null>(null);
   const headGroupRef = useRef<THREE.Group | null>(null);
 
-  const [animationMode, setAnimationMode] = useState<'idle' | 'wave' | 'walk'>('idle');
   const [autoRotate, setAutoRotate] = useState(true);
   const [snapshotSuccess, setSnapshotSuccess] = useState(false);
 
@@ -56,7 +53,7 @@ export const ThreePixelCharacter = ({
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
     rendererRef.current = renderer;
 
     container.innerHTML = '';
@@ -68,14 +65,14 @@ export const ThreePixelCharacter = ({
     controls.dampingFactor = 0.05;
     controls.minDistance = 2.5;
     controls.maxDistance = 8;
-    controls.maxPolarAngle = Math.PI / 2 + 0.1; // Don't flip under pedestal
+    controls.maxPolarAngle = Math.PI / 2 + 0.1;
     controls.target.set(0, 0.4, 0);
 
-    // 4. Lighting (Bright, colorful arcade lighting)
-    const ambientLight = new THREE.AmbientLight('#ffffff', 0.9);
+    // 4. Lighting
+    const ambientLight = new THREE.AmbientLight('#ffffff', 0.95);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight('#fff5e6', 1.2);
+    const dirLight = new THREE.DirectionalLight('#fff5e6', 1.25);
     dirLight.position.set(4, 8, 4);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
@@ -129,21 +126,18 @@ export const ThreePixelCharacter = ({
     headGroup.add(hairGroup);
 
     if (features.hairStyle !== 'bald') {
-      // Top hair helmet cap
       const topCapGeo = new THREE.BoxGeometry(0.86, 0.22, 0.86);
       const topCap = new THREE.Mesh(topCapGeo, hairMat);
       topCap.position.set(0, 0.35, 0);
       topCap.castShadow = true;
       hairGroup.add(topCap);
 
-      // Back hair
       const backGeo = new THREE.BoxGeometry(0.86, features.hairStyle === 'long' ? 0.9 : 0.45, 0.16);
       const backMesh = new THREE.Mesh(backGeo, hairMat);
       backMesh.position.set(0, features.hairStyle === 'long' ? -0.1 : 0.12, -0.38);
       backMesh.castShadow = true;
       hairGroup.add(backMesh);
 
-      // Side hair
       const sideH = features.hairStyle === 'long' ? 0.8 : 0.35;
       const sideGeo = new THREE.BoxGeometry(0.12, sideH, 0.7);
       const leftSide = new THREE.Mesh(sideGeo, hairMat);
@@ -153,14 +147,12 @@ export const ThreePixelCharacter = ({
       hairGroup.add(leftSide);
       hairGroup.add(rightSide);
 
-      // Front Bangs / Hair volume
       if (features.hairStyle === 'curly' || features.hairStyle === 'messy') {
         const fringeGeo = new THREE.BoxGeometry(0.84, 0.18, 0.16);
         const fringe = new THREE.Mesh(fringeGeo, hairMat);
         fringe.position.set(0, 0.36, 0.38);
         hairGroup.add(fringe);
 
-        // Top spiky curls
         for (let i = -2; i <= 2; i++) {
           const curlGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
           const curl = new THREE.Mesh(curlGeo, hairMat);
@@ -189,12 +181,55 @@ export const ThreePixelCharacter = ({
       headGroup.add(helmet);
     }
 
+    // Reading Glasses (Lentes de lectura con cristales transparentes)
     if (accessory === 'glasses' || features.hasGlasses) {
-      const glassesMat = new THREE.MeshToonMaterial({ color: '#111827' });
-      const frameGeo = new THREE.BoxGeometry(0.78, 0.16, 0.08);
-      const frame = new THREE.Mesh(frameGeo, glassesMat);
-      frame.position.set(0, -0.02, 0.44);
-      headGroup.add(frame);
+      const glassesGroup = new THREE.Group();
+      glassesGroup.position.set(0, -0.02, 0.43);
+
+      const frameMat = new THREE.MeshToonMaterial({ color: '#1E232A' });
+      const glassMat = new THREE.MeshPhysicalMaterial({
+        color: '#DCEBFA',
+        transparent: true,
+        opacity: 0.35,
+        roughness: 0.1,
+        transmission: 0.8
+      });
+
+      // Left lens frame & glass
+      const leftFrameGeo = new THREE.BoxGeometry(0.28, 0.2, 0.03);
+      const leftGlass = new THREE.Mesh(leftFrameGeo, glassMat);
+      leftGlass.position.set(-0.2, 0, 0);
+      glassesGroup.add(leftGlass);
+
+      // Left frame rim
+      const leftRim = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.22, 0.02), frameMat);
+      leftRim.position.set(-0.2, 0, -0.01);
+      glassesGroup.add(leftRim);
+
+      // Right lens frame & glass
+      const rightFrameGeo = new THREE.BoxGeometry(0.28, 0.2, 0.03);
+      const rightGlass = new THREE.Mesh(rightFrameGeo, glassMat);
+      rightGlass.position.set(0.2, 0, 0);
+      glassesGroup.add(rightGlass);
+
+      const rightRim = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.22, 0.02), frameMat);
+      rightRim.position.set(0.2, 0, -0.01);
+      glassesGroup.add(rightRim);
+
+      // Bridge & temples
+      const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.03, 0.03), frameMat);
+      bridge.position.set(0, 0.04, 0);
+      glassesGroup.add(bridge);
+
+      const leftTemple = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.35), frameMat);
+      leftTemple.position.set(-0.36, 0.02, -0.17);
+      glassesGroup.add(leftTemple);
+
+      const rightTemple = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.35), frameMat);
+      rightTemple.position.set(0.36, 0.02, -0.17);
+      glassesGroup.add(rightTemple);
+
+      headGroup.add(glassesGroup);
     }
 
     // --- TORSO GROUP ---
@@ -210,41 +245,102 @@ export const ThreePixelCharacter = ({
     torsoMesh.castShadow = true;
     characterGroup.add(torsoMesh);
 
-    // --- LEFT ARM ---
+    // --- 3D GARMENT GEOMETRY DETAILS ---
+    if (features.clothingType === 'hoodie') {
+      // 3D Folded Hood behind neck
+      const hoodGeo = new THREE.BoxGeometry(0.84, 0.44, 0.22);
+      const hoodMesh = new THREE.Mesh(hoodGeo, clothMat);
+      hoodMesh.position.set(0, 0.82, -0.22);
+      hoodMesh.castShadow = true;
+      characterGroup.add(hoodMesh);
+
+      // 3D Kangaroo pocket protrusion
+      const pocketGeo = new THREE.BoxGeometry(0.64, 0.34, 0.06);
+      const pocketMesh = new THREE.Mesh(pocketGeo, clothMat);
+      pocketMesh.position.set(0, 0.26, 0.22);
+      pocketMesh.castShadow = true;
+      characterGroup.add(pocketMesh);
+
+    } else if (features.clothingType === 'jacket') {
+      // 3D Open jacket collar lapels
+      const lapelGeo = new THREE.BoxGeometry(0.18, 0.58, 0.05);
+      const leftLapel = new THREE.Mesh(lapelGeo, clothMat);
+      leftLapel.position.set(-0.24, 0.65, 0.22);
+      leftLapel.castShadow = true;
+      characterGroup.add(leftLapel);
+
+      const rightLapel = new THREE.Mesh(lapelGeo, clothMat);
+      rightLapel.position.set(0.24, 0.65, 0.22);
+      rightLapel.castShadow = true;
+      characterGroup.add(rightLapel);
+    }
+
+    // --- ARMS (TRANSFORMS FOR T-SHIRT VS LONG SLEEVE) ---
+    const isShortSleeve = features.clothingType === 'tshirt';
+
+    // Left Arm
     const leftArmGroup = new THREE.Group();
     leftArmGroup.position.set(-0.58, 0.95, 0);
     leftArmRef.current = leftArmGroup;
     characterGroup.add(leftArmGroup);
 
-    const sleeveGeo = new THREE.BoxGeometry(0.34, 0.75, 0.34);
-    const leftSleeve = new THREE.Mesh(sleeveGeo, clothMat);
-    leftSleeve.position.set(0, -0.375, 0);
-    leftSleeve.castShadow = true;
-    leftArmGroup.add(leftSleeve);
+    if (isShortSleeve) {
+      // Short Sleeve T-Shirt
+      const shortSleeve = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.35), clothMat);
+      shortSleeve.position.set(0, -0.175, 0);
+      shortSleeve.castShadow = true;
+      leftArmGroup.add(shortSleeve);
 
-    const handGeo = new THREE.BoxGeometry(0.32, 0.35, 0.32);
-    const leftHand = new THREE.Mesh(handGeo, skinMat);
-    leftHand.position.set(0, -0.85, 0);
-    leftHand.castShadow = true;
-    leftArmGroup.add(leftHand);
+      // Bare Forearm + Hand in skin color!
+      const bareArm = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.75, 0.32), skinMat);
+      bareArm.position.set(0, -0.68, 0);
+      bareArm.castShadow = true;
+      leftArmGroup.add(bareArm);
+    } else {
+      // Long Sleeve (Hoodie / Jacket)
+      const leftSleeve = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.75, 0.34), clothMat);
+      leftSleeve.position.set(0, -0.375, 0);
+      leftSleeve.castShadow = true;
+      leftArmGroup.add(leftSleeve);
 
-    // --- RIGHT ARM ---
+      const leftHand = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.35, 0.32), skinMat);
+      leftHand.position.set(0, -0.85, 0);
+      leftHand.castShadow = true;
+      leftArmGroup.add(leftHand);
+    }
+
+    // Right Arm
     const rightArmGroup = new THREE.Group();
     rightArmGroup.position.set(0.58, 0.95, 0);
     rightArmRef.current = rightArmGroup;
     characterGroup.add(rightArmGroup);
 
-    const rightSleeve = new THREE.Mesh(sleeveGeo, clothMat);
-    rightSleeve.position.set(0, -0.375, 0);
-    rightSleeve.castShadow = true;
-    rightArmGroup.add(rightSleeve);
+    if (isShortSleeve) {
+      // Short Sleeve T-Shirt
+      const shortSleeve = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.35), clothMat);
+      shortSleeve.position.set(0, -0.175, 0);
+      shortSleeve.castShadow = true;
+      rightArmGroup.add(shortSleeve);
 
-    const rightHand = new THREE.Mesh(handGeo, skinMat);
-    rightHand.position.set(0, -0.85, 0);
-    rightHand.castShadow = true;
-    rightArmGroup.add(rightHand);
+      // Bare Forearm + Hand in skin color!
+      const bareArm = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.75, 0.32), skinMat);
+      bareArm.position.set(0, -0.68, 0);
+      bareArm.castShadow = true;
+      rightArmGroup.add(bareArm);
+    } else {
+      // Long Sleeve (Hoodie / Jacket)
+      const rightSleeve = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.75, 0.34), clothMat);
+      rightSleeve.position.set(0, -0.375, 0);
+      rightSleeve.castShadow = true;
+      rightArmGroup.add(rightSleeve);
 
-    // Diamond Sword Item in Hand
+      const rightHand = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.35, 0.32), skinMat);
+      rightHand.position.set(0, -0.85, 0);
+      rightHand.castShadow = true;
+      rightArmGroup.add(rightHand);
+    }
+
+    // Diamond Sword in hand
     if (accessory === 'diamond-sword') {
       const swordMat = new THREE.MeshToonMaterial({ color: '#4BEDD7' });
       const swordGeo = new THREE.BoxGeometry(0.12, 1.1, 0.08);
@@ -261,7 +357,6 @@ export const ThreePixelCharacter = ({
     // Left Leg
     const leftLegGroup = new THREE.Group();
     leftLegGroup.position.set(-0.21, -0.05, 0);
-    leftLegRef.current = leftLegGroup;
     characterGroup.add(leftLegGroup);
 
     const leftLegMesh = new THREE.Mesh(legGeo, pantsMat);
@@ -277,7 +372,6 @@ export const ThreePixelCharacter = ({
     // Right Leg
     const rightLegGroup = new THREE.Group();
     rightLegGroup.position.set(0.21, -0.05, 0);
-    rightLegRef.current = rightLegGroup;
     characterGroup.add(rightLegGroup);
 
     const rightLegMesh = new THREE.Mesh(legGeo, pantsMat);
@@ -295,14 +389,12 @@ export const ThreePixelCharacter = ({
     pedestalGroup.position.set(0, -1.15, 0);
     scene.add(pedestalGroup);
 
-    // Center dark pedestal
     const pedGeo = new THREE.CylinderGeometry(1.6, 1.8, 0.2, 32);
     const pedMat = new THREE.MeshToonMaterial({ color: '#1c1d24' });
     const pedMesh = new THREE.Mesh(pedGeo, pedMat);
     pedMesh.receiveShadow = true;
     pedestalGroup.add(pedMesh);
 
-    // 4 Google color sectors on pedestal ring
     const colors = ['#4285F4', '#EA4335', '#FBBC05', '#34A853'];
     colors.forEach((c, idx) => {
       const ringGeo = new THREE.RingGeometry(1.4, 1.65, 16, 1, (idx * Math.PI) / 2, Math.PI / 2 - 0.08);
@@ -313,15 +405,14 @@ export const ThreePixelCharacter = ({
       pedestalGroup.add(ringMesh);
     });
 
-    // 6. Animation Loop
-    let clock = new THREE.Clock();
+    // 6. Animation Loop (Natural Idle Breathing Only)
+    const startTime = performance.now();
     let animId: number;
 
     const animate = () => {
       animId = requestAnimationFrame(animate);
-      const elapsed = clock.getElapsedTime();
+      const elapsed = (performance.now() - startTime) * 0.001;
 
-      // Controls update
       controls.update();
 
       // Auto-rotation
@@ -330,32 +421,12 @@ export const ThreePixelCharacter = ({
         pedestalGroup.rotation.y = elapsed * 0.2;
       }
 
-      // Procedural animations
-      if (headGroupRef.current && rightArmRef.current && leftArmRef.current && rightLegRef.current && leftLegRef.current) {
-        if (animationMode === 'idle') {
-          // Subtle breathing & head motion
-          headGroupRef.current.position.y = 1.45 + Math.sin(elapsed * 2) * 0.02;
-          headGroupRef.current.rotation.y = Math.sin(elapsed * 0.8) * 0.08;
-          rightArmRef.current.rotation.x = Math.sin(elapsed * 2) * 0.05;
-          leftArmRef.current.rotation.x = -Math.sin(elapsed * 2) * 0.05;
-          rightLegRef.current.rotation.x = 0;
-          leftLegRef.current.rotation.x = 0;
-        } else if (animationMode === 'wave') {
-          // Right arm raised and waving
-          rightArmRef.current.rotation.z = -2.4 + Math.sin(elapsed * 6) * 0.25;
-          rightArmRef.current.rotation.x = 0.2;
-          headGroupRef.current.rotation.y = -0.15;
-          leftArmRef.current.rotation.x = Math.sin(elapsed * 2) * 0.05;
-        } else if (animationMode === 'walk') {
-          // Walking swing
-          const walkSpeed = 5;
-          rightArmRef.current.rotation.x = Math.sin(elapsed * walkSpeed) * 0.7;
-          leftArmRef.current.rotation.x = -Math.sin(elapsed * walkSpeed) * 0.7;
-          rightArmRef.current.rotation.z = 0;
-          rightLegRef.current.rotation.x = -Math.sin(elapsed * walkSpeed) * 0.6;
-          leftLegRef.current.rotation.x = Math.sin(elapsed * walkSpeed) * 0.6;
-          headGroupRef.current.position.y = 1.45 + Math.abs(Math.sin(elapsed * walkSpeed * 2)) * 0.03;
-        }
+      // Gentle natural breathing
+      if (headGroupRef.current && rightArmRef.current && leftArmRef.current) {
+        headGroupRef.current.position.y = 1.45 + Math.sin(elapsed * 2) * 0.02;
+        headGroupRef.current.rotation.y = Math.sin(elapsed * 0.8) * 0.06;
+        rightArmRef.current.rotation.x = Math.sin(elapsed * 2) * 0.04;
+        leftArmRef.current.rotation.x = -Math.sin(elapsed * 2) * 0.04;
       }
 
       renderer.render(scene, camera);
@@ -363,7 +434,6 @@ export const ThreePixelCharacter = ({
 
     animate();
 
-    // Window resize handler
     const handleResize = () => {
       if (!mountRef.current || !rendererRef.current || !cameraRef.current) return;
       const w = mountRef.current.clientWidth;
@@ -383,7 +453,7 @@ export const ThreePixelCharacter = ({
         container.removeChild(renderer.domElement);
       }
     };
-  }, [features, accessory, autoRotate, animationMode]);
+  }, [features, accessory, autoRotate]);
 
   // Capture High-Res PNG Avatar Snapshot
   const handleTakeSnapshot = () => {
@@ -391,7 +461,6 @@ export const ThreePixelCharacter = ({
     soundManager.playShutter();
     soundManager.playCoin();
 
-    // Render frame
     rendererRef.current.render(sceneRef.current, cameraRef.current);
     const dataUrl = rendererRef.current.domElement.toDataURL('image/png');
 
@@ -459,44 +528,6 @@ export const ThreePixelCharacter = ({
         <div className="absolute bottom-2 left-2 pointer-events-none font-pixel text-[9px] text-gray-400 bg-black/60 px-2 py-0.5 border border-black">
           🖱️ Arrastra para rotar en 360°
         </div>
-      </div>
-
-      {/* Animation Selector */}
-      <div className="mt-4 flex items-center justify-center gap-2 flex-wrap">
-        <span className="font-pixel text-[10px] text-gray-400 mr-1">ANIMACIÓN:</span>
-        <button
-          onClick={() => {
-            soundManager.playClick();
-            setAnimationMode('idle');
-          }}
-          className={`pixel-btn text-[9px] py-1 px-3 ${
-            animationMode === 'idle' ? 'pixel-btn-blue' : 'pixel-btn-dark'
-          }`}
-        >
-          RESPIRAR (IDLE)
-        </button>
-        <button
-          onClick={() => {
-            soundManager.playClick();
-            setAnimationMode('wave');
-          }}
-          className={`pixel-btn text-[9px] py-1 px-3 ${
-            animationMode === 'wave' ? 'pixel-btn-yellow' : 'pixel-btn-dark'
-          }`}
-        >
-          SALUDAR 👋
-        </button>
-        <button
-          onClick={() => {
-            soundManager.playClick();
-            setAnimationMode('walk');
-          }}
-          className={`pixel-btn text-[9px] py-1 px-3 ${
-            animationMode === 'walk' ? 'pixel-btn-red' : 'pixel-btn-dark'
-          }`}
-        >
-          CAMINAR 🚶
-        </button>
       </div>
 
       {/* Snapshot / Export PNG Button */}

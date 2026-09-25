@@ -237,7 +237,7 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
             features.hasGlasses ? 'pixel-btn-yellow' : 'pixel-btn-dark'
           }`}
         >
-          <span>👓 LENTES:</span>
+          <span>👓 LENTES LECTURA:</span>
           <span>{features.hasGlasses ? 'SÍ' : 'NO'}</span>
         </button>
 
@@ -262,7 +262,7 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
             { id: 'none', label: 'Ninguno', icon: '❌' },
             { id: 'diamond-helmet', label: 'Casco Diamante', icon: '🪖' },
             { id: 'diamond-sword', label: 'Espada Diamante', icon: '⚔️' },
-            { id: 'glasses', label: 'Lentes 3D', icon: '🕶️' },
+            { id: 'glasses', label: 'Lentes Lectura', icon: '👓' },
           ].map(acc => (
             <button
               key={acc.id}
