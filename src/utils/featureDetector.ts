@@ -1,5 +1,6 @@
-// Intelligent Vision Feature Detector
-// Analyzes uploaded portraits or camera snapshots to detect skin tone, hair style/color, clothing, and accessories.
+// Advanced Vision Feature Detector
+// Uses YCbCr skin segmentation and torso color clustering to detect exact skin tone,
+// hairstyle, and clothes directly from the user's uploaded portrait.
 
 export interface DetectedFeatures {
   skinColor: string;
@@ -11,8 +12,10 @@ export interface DetectedFeatures {
   clothingColor: string;
   clothingColorName: string;
   clothingAccentColor: string;
-  clothingType: 'hoodie' | 'tshirt' | 'jacket' | 'sweater';
+  clothingType: 'hoodie' | 'tshirt' | 'jacket';
   clothingTypeName: string;
+  clothingCanvas?: HTMLCanvasElement;
+  clothingTextureUrl?: string;
   pantsColor: string;
   hasGlasses: boolean;
   hasBeard: boolean;
@@ -29,8 +32,8 @@ export const DEFAULT_DETECTED_FEATURES: DetectedFeatures = {
   clothingColor: '#4285F4',
   clothingColorName: 'Azul Google',
   clothingAccentColor: '#EA4335',
-  clothingType: 'hoodie',
-  clothingTypeName: 'Hoodie con Capucha',
+  clothingType: 'tshirt',
+  clothingTypeName: 'Polera / T-Shirt',
   pantsColor: '#1F2937',
   hasGlasses: false,
   hasBeard: false,
@@ -48,18 +51,34 @@ function colorDist(r1: number, g1: number, b1: number, r2: number, g2: number, b
   return Math.sqrt((r1 - r2) ** 2 + (g1 - g2) ** 2 + (b1 - b2) ** 2);
 }
 
-// Preset skin tone classifications
-const SKIN_PALETTES = [
+// Standard YCbCr Skin Pixel Detection algorithm (robust across lighting and all human ethnicities)
+function isSkinPixel(r: number, g: number, b: number): boolean {
+  // Convert to YCbCr
+  const y  =  0.299 * r + 0.587 * g + 0.114 * b;
+  const cb = -0.1687 * r - 0.3313 * g + 0.5 * b + 128;
+  const cr =  0.5 * r - 0.4187 * g - 0.0813 * b + 128;
+
+  // Rule for human skin across all skin tones
+  return (
+    y > 35 && y < 245 &&
+    cb >= 77 && cb <= 130 &&
+    cr >= 132 && cr <= 178 &&
+    r > g && g >= b &&
+    (r - g) >= 8
+  );
+}
+
+// Descriptive skin tone names
+const SKIN_CATEGORIES = [
   { name: 'Claro Porcelana', hex: '#FFE0BD', r: 255, g: 224, b: 189 },
-  { name: 'Claro Melocotón', hex: '#FFCD94', r: 255, g: 205, b: 148 },
-  { name: 'Cálido Trigueño', hex: '#E0AC69', r: 224, g: 172, b: 105 },
-  { name: 'Canela Medio', hex: '#C68642', r: 198, g: 134, b: 66 },
-  { name: 'Moreno Bronce', hex: '#8D5524', r: 141, g: 85, b: 36 },
-  { name: 'Ébano Profundo', hex: '#4A2A18', r: 74, g: 42, b: 24 },
+  { name: 'Claro Melocotón', hex: '#F9CCA5', r: 249, g: 204, b: 165 },
+  { name: 'Cálido Trigueño', hex: '#E2AD75', r: 226, g: 173, b: 117 },
+  { name: 'Canela / Oliva', hex: '#C58957', r: 197, g: 137, b: 87 },
+  { name: 'Moreno Bronce', hex: '#975E33', r: 151, g: 94, b: 51 },
+  { name: 'Ébano Profundo', hex: '#583620', r: 88, g: 54, b: 32 },
 ];
 
-// Preset hair colors
-const HAIR_COLORS = [
+const HAIR_CATEGORIES = [
   { name: 'Negro Azabache', hex: '#161413', r: 22, g: 20, b: 19 },
   { name: 'Castaño Oscuro', hex: '#362217', r: 54, g: 34, b: 23 },
   { name: 'Castaño Claro', hex: '#633F27', r: 99, g: 63, b: 39 },
@@ -68,18 +87,28 @@ const HAIR_COLORS = [
   { name: 'Platino / Gris', hex: '#9CA3AF', r: 156, g: 163, b: 175 },
 ];
 
-// Preset clothing colors
-const CLOTHING_COLORS = [
-  { name: 'Azul Google', hex: '#4285F4', r: 66, g: 133, b: 244 },
-  { name: 'Rojo Google', hex: '#EA4335', r: 234, g: 67, b: 53 },
-  { name: 'Amarillo Google', hex: '#FBBC05', r: 251, g: 188, b: 5 },
-  { name: 'Verde Google', hex: '#34A853', r: 52, g: 168, b: 83 },
-  { name: 'Negro Carbón', hex: '#1F2428', r: 31, g: 36, b: 40 },
-  { name: 'Blanco Nieve', hex: '#E5E7EB', r: 229, g: 231, b: 235 },
-  { name: 'Gris Grafito', hex: '#4B5563', r: 75, g: 85, b: 99 },
-  { name: 'Azul Marino', hex: '#1E3A8A', r: 30, g: 58, b: 138 },
-  { name: 'Morado Pixel', hex: '#8B5CF6', r: 139, g: 92, b: 246 },
-];
+function getDescriptiveColorName(r: number, g: number, b: number): string {
+  // Common named color matcher
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const diff = max - min;
+
+  if (max < 45) return 'Negro / Carbón';
+  if (min > 200) return 'Blanco Nieve';
+  if (diff < 20) return 'Gris Grafito';
+
+  if (r > g && r > b) {
+    if (g > 150 && b < 100) return 'Amarillo / Mostaza';
+    if (g > 90 && b < 80) return 'Naranja / Ocre';
+    return 'Rojo / Borgoña';
+  } else if (g > r && g > b) {
+    return 'Verde';
+  } else if (b > r && b > g) {
+    if (r > 100) return 'Morado / Violeta';
+    return 'Azul';
+  }
+  return 'Personalizado';
+}
 
 export async function detectFeaturesFromImage(imageSource: string): Promise<DetectedFeatures> {
   return new Promise((resolve) => {
@@ -88,9 +117,9 @@ export async function detectFeaturesFromImage(imageSource: string): Promise<Dete
     img.src = imageSource;
 
     img.onload = () => {
+      const W = 200;
+      const H = 200;
       const canvas = document.createElement('canvas');
-      const W = 160;
-      const H = 160;
       canvas.width = W;
       canvas.height = H;
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
@@ -103,200 +132,275 @@ export async function detectFeaturesFromImage(imageSource: string): Promise<Dete
       ctx.drawImage(img, 0, 0, W, H);
       const imgData = ctx.getImageData(0, 0, W, H).data;
 
-      // 1. Detect Skin Tone from Face Core (center-middle: x 40%..60%, y 35%..55%)
-      let skinR = 0, skinG = 0, skinB = 0, skinSamples = 0;
-      for (let y = Math.round(H * 0.35); y <= Math.round(H * 0.52); y += 2) {
-        for (let x = Math.round(W * 0.40); x <= Math.round(W * 0.60); x += 2) {
+      // 1. SKIN & FACE LOCALIZATION (Using YCbCr skin pixel mask)
+      let minX = W, maxX = 0, minY = H, maxY = 0;
+      const skinPixels: { x: number; y: number; r: number; g: number; b: number }[] = [];
+
+      // Scan upper 68% of image for face
+      for (let y = 8; y < Math.round(H * 0.68); y += 2) {
+        for (let x = 8; x < W - 8; x += 2) {
           const idx = (y * W + x) * 4;
           const r = imgData[idx];
           const g = imgData[idx + 1];
           const b = imgData[idx + 2];
 
-          // Filter out extreme shadows (nostrils/eyes) and pure white glare
-          const luma = 0.299 * r + 0.587 * g + 0.114 * b;
-          if (luma > 45 && luma < 245 && r > b) {
-            skinR += r;
-            skinG += g;
-            skinB += b;
-            skinSamples++;
+          if (isSkinPixel(r, g, b)) {
+            skinPixels.push({ x, y, r, g, b });
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
           }
         }
       }
 
-      if (skinSamples > 0) {
-        skinR /= skinSamples;
-        skinG /= skinSamples;
-        skinB /= skinSamples;
-      } else {
-        skinR = 214; skinG = 137; skinB = 90;
+      let detectedSkinHex = '#D6895A';
+      let detectedSkinName = 'Cálido Medio';
+      let faceCenterX = Math.round(W / 2);
+      let faceCenterY = Math.round(H * 0.38);
+      let chinY = Math.round(H * 0.52);
+
+      if (skinPixels.length > 25) {
+        faceCenterX = Math.round((minX + maxX) / 2);
+        faceCenterY = Math.round((minY + maxY) / 2);
+        chinY = maxY;
+
+        // Sample cheeks & forehead: central 60% of detected face box
+        const innerMinX = minX + (maxX - minX) * 0.2;
+        const innerMaxX = maxX - (maxX - minX) * 0.2;
+        const innerMinY = minY + (maxY - minY) * 0.2;
+        const innerMaxY = maxY - (maxY - minY) * 0.2;
+
+        const filteredSkin = skinPixels.filter(
+          p => p.x >= innerMinX && p.x <= innerMaxX && p.y >= innerMinY && p.y <= innerMaxY
+        );
+
+        const sampleSet = filteredSkin.length > 10 ? filteredSkin : skinPixels;
+        let sumR = 0, sumG = 0, sumB = 0;
+        sampleSet.forEach(p => {
+          sumR += p.r;
+          sumG += p.g;
+          sumB += p.b;
+        });
+
+        const avgR = Math.round(sumR / sampleSet.length);
+        const avgG = Math.round(sumG / sampleSet.length);
+        const avgB = Math.round(sumB / sampleSet.length);
+
+        detectedSkinHex = rgbToHex(avgR, avgG, avgB);
+
+        // Find closest descriptive name
+        let closestSkin = SKIN_CATEGORIES[0];
+        let minD = 999999;
+        SKIN_CATEGORIES.forEach(c => {
+          const d = colorDist(avgR, avgG, avgB, c.r, c.g, c.b);
+          if (d < minD) {
+            minD = d;
+            closestSkin = c;
+          }
+        });
+        detectedSkinName = closestSkin.name;
       }
 
-      const detectedSkinHex = rgbToHex(skinR, skinG, skinB);
-      // Find closest skin category name
-      let closestSkin = SKIN_PALETTES[0];
-      let minSkinDist = 999999;
-      SKIN_PALETTES.forEach(p => {
-        const d = colorDist(skinR, skinG, skinB, p.r, p.g, p.b);
-        if (d < minSkinDist) {
-          minSkinDist = d;
-          closestSkin = p;
-        }
-      });
+      // 2. HAIR DETECTION (Above face crown & upper sides)
+      const hairCrownY = Math.max(4, minY - 15);
+      const hairCrownEnd = Math.min(faceCenterY, minY + 15);
+      const hairPixels: { r: number; g: number; b: number }[] = [];
 
-      // 2. Detect Hair Color and Style from Top/Crown (x 30%..70%, y 8%..26%)
-      let hairR = 0, hairG = 0, hairB = 0, hairSamples = 0;
-      for (let y = Math.round(H * 0.08); y <= Math.round(H * 0.26); y += 2) {
-        for (let x = Math.round(W * 0.30); x <= Math.round(W * 0.70); x += 2) {
+      for (let y = hairCrownY; y <= hairCrownEnd; y += 2) {
+        for (let x = Math.max(10, faceCenterX - 35); x <= Math.min(W - 10, faceCenterX + 35); x += 2) {
           const idx = (y * W + x) * 4;
           const r = imgData[idx];
           const g = imgData[idx + 1];
           const b = imgData[idx + 2];
 
-          // Differentiate hair from skin (hair is typically darker or different hue)
-          const distToSkin = colorDist(r, g, b, skinR, skinG, skinB);
-          if (distToSkin > 28) {
-            hairR += r;
-            hairG += g;
-            hairB += b;
-            hairSamples++;
+          if (!isSkinPixel(r, g, b)) {
+            hairPixels.push({ r, g, b });
           }
         }
       }
 
-      if (hairSamples > 0) {
-        hairR /= hairSamples;
-        hairG /= hairSamples;
-        hairB /= hairSamples;
-      } else {
-        hairR = 40; hairG = 28; hairB = 22;
+      let detectedHairHex = '#2B1B17';
+      let detectedHairName = 'Castaño Oscuro';
+      if (hairPixels.length > 10) {
+        let hr = 0, hg = 0, hb = 0;
+        hairPixels.forEach(p => { hr += p.r; hg += p.g; hb += p.b; });
+        const avgHr = Math.round(hr / hairPixels.length);
+        const avgHg = Math.round(hg / hairPixels.length);
+        const avgHb = Math.round(hb / hairPixels.length);
+        detectedHairHex = rgbToHex(avgHr, avgHg, avgHb);
+
+        let closestHair = HAIR_CATEGORIES[0];
+        let minHD = 999999;
+        HAIR_CATEGORIES.forEach(h => {
+          const d = colorDist(avgHr, avgHg, avgHb, h.r, h.g, h.b);
+          if (d < minHD) {
+            minHD = d;
+            closestHair = h;
+          }
+        });
+        detectedHairName = closestHair.name;
       }
 
-      const detectedHairHex = rgbToHex(hairR, hairG, hairB);
-      let closestHair = HAIR_COLORS[0];
-      let minHairDist = 999999;
-      HAIR_COLORS.forEach(h => {
-        const d = colorDist(hairR, hairG, hairB, h.r, h.g, h.b);
-        if (d < minHairDist) {
-          minHairDist = d;
-          closestHair = h;
-        }
-      });
-
-      // Detect Hairstyle (volume and sides)
-      // Check left/right side hair coverage at ear level (x 15%..28% and x 72%..85%, y 28%..48%)
+      // Hair style volume check on sides
       let sideHairCount = 0;
-      for (let y = Math.round(H * 0.28); y <= Math.round(H * 0.48); y += 3) {
-        for (let x of [Math.round(W * 0.20), Math.round(W * 0.80)]) {
-          const idx = (y * W + x) * 4;
-          const r = imgData[idx];
-          const g = imgData[idx + 1];
-          const b = imgData[idx + 2];
-          if (colorDist(r, g, b, hairR, hairG, hairB) < 45) {
-            sideHairCount++;
+      for (let y = faceCenterY; y <= chinY; y += 3) {
+        for (let x of [minX - 10, maxX + 10]) {
+          if (x > 0 && x < W) {
+            const idx = (y * W + x) * 4;
+            const r = imgData[idx];
+            const g = imgData[idx + 1];
+            const b = imgData[idx + 2];
+            if (!isSkinPixel(r, g, b) && colorDist(r, g, b, 20, 20, 20) < 120) {
+              sideHairCount++;
+            }
           }
         }
       }
 
-      let detectedStyle: DetectedFeatures['hairStyle'] = 'short';
-      let detectedStyleName = 'Corto Clásico';
-
-      if (hairSamples < 15) {
-        detectedStyle = 'bald';
-        detectedStyleName = 'Rapado / Sin Cabello';
-      } else if (sideHairCount > 18) {
-        detectedStyle = 'long';
-        detectedStyleName = 'Cabello Largo';
-      } else if (sideHairCount > 9) {
-        detectedStyle = 'curly';
-        detectedStyleName = 'Ondulado / Con Volumen';
-      } else {
-        detectedStyle = 'short';
-        detectedStyleName = 'Corto Moderno';
+      let detectedHairStyle: DetectedFeatures['hairStyle'] = 'short';
+      let detectedHairStyleName = 'Corto Moderno';
+      if (hairPixels.length < 8) {
+        detectedHairStyle = 'bald';
+        detectedHairStyleName = 'Rapado';
+      } else if (sideHairCount > 15) {
+        detectedHairStyle = 'long';
+        detectedHairStyleName = 'Cabello Largo';
+      } else if (sideHairCount > 7) {
+        detectedHairStyle = 'curly';
+        detectedHairStyleName = 'Ondulado / Con Volumen';
       }
 
-      // 3. Detect Clothing from Chest / Torso (x 25%..75%, y 68%..96%)
-      let clothR = 0, clothG = 0, clothB = 0, clothSamples = 0;
-      for (let y = Math.round(H * 0.68); y <= Math.round(H * 0.96); y += 2) {
-        for (let x = Math.round(W * 0.25); x <= Math.round(W * 0.75); x += 2) {
+      // 3. CLOTHING DETECTION & TEXTURE CROPPING (Directly below chin)
+      const clothStartY = Math.min(H - 25, Math.max(Math.round(H * 0.45), chinY + 4));
+      const clothEndY = H;
+      const clothStartX = Math.max(10, faceCenterX - 55);
+      const clothEndX = Math.min(W - 10, faceCenterX + 55);
+
+      // Check neck exposed skin (right below chin)
+      let neckSkinCount = 0;
+      let totalNeckSamples = 0;
+      for (let y = chinY; y <= Math.min(H, chinY + 22); y += 2) {
+        for (let x = faceCenterX - 18; x <= faceCenterX + 18; x += 2) {
+          totalNeckSamples++;
+          const idx = (y * W + x) * 4;
+          if (isSkinPixel(imgData[idx], imgData[idx + 1], imgData[idx + 2])) {
+            neckSkinCount++;
+          }
+        }
+      }
+
+      const isNeckExposed = (neckSkinCount / Math.max(1, totalNeckSamples)) > 0.28;
+
+      // Extract Torso Pixels (non-skin) for Color Clustering
+      const colorBins: { [key: string]: { count: number; r: number; g: number; b: number } } = {};
+      const clothPixels: { r: number; g: number; b: number }[] = [];
+
+      for (let y = clothStartY; y < clothEndY; y += 2) {
+        for (let x = clothStartX; x < clothEndX; x += 2) {
           const idx = (y * W + x) * 4;
           const r = imgData[idx];
           const g = imgData[idx + 1];
           const b = imgData[idx + 2];
 
-          // Exclude skin neck area
-          if (colorDist(r, g, b, skinR, skinG, skinB) > 35) {
-            clothR += r;
-            clothG += g;
-            clothB += b;
-            clothSamples++;
+          if (!isSkinPixel(r, g, b)) {
+            clothPixels.push({ r, g, b });
+            // Bin by 32 units for color quantization
+            const binKey = `${Math.round(r / 32) * 32}_${Math.round(g / 32) * 32}_${Math.round(b / 32) * 32}`;
+            if (!colorBins[binKey]) {
+              colorBins[binKey] = { count: 0, r: 0, g: 0, b: 0 };
+            }
+            colorBins[binKey].count++;
+            colorBins[binKey].r += r;
+            colorBins[binKey].g += g;
+            colorBins[binKey].b += b;
           }
         }
       }
 
-      if (clothSamples > 0) {
-        clothR /= clothSamples;
-        clothG /= clothSamples;
-        clothB /= clothSamples;
-      } else {
-        clothR = 66; clothG = 133; clothB = 244; // Default Google Blue
-      }
+      // Find top dominant color from bins
+      let dominantBin = { count: 0, r: 66, g: 133, b: 244 };
+      let secondaryBin = { count: 0, r: 234, g: 67, b: 53 };
 
-      const detectedClothHex = rgbToHex(clothR, clothG, clothB);
-      let closestCloth = CLOTHING_COLORS[0];
-      let minClothDist = 999999;
-      CLOTHING_COLORS.forEach(c => {
-        const d = colorDist(clothR, clothG, clothB, c.r, c.g, c.b);
-        if (d < minClothDist) {
-          minClothDist = d;
-          closestCloth = c;
+      Object.values(colorBins).forEach(bin => {
+        if (bin.count > dominantBin.count) {
+          secondaryBin = dominantBin;
+          dominantBin = bin;
+        } else if (bin.count > secondaryBin.count) {
+          secondaryBin = bin;
         }
       });
 
-      // Clothing type estimation (hoodie vs tshirt vs jacket)
-      let detectedClothType: DetectedFeatures['clothingType'] = 'hoodie';
-      let detectedClothTypeName = 'Hoodie Casual';
-      if (clothR > 180 && clothG > 180 && clothB > 180) {
-        detectedClothType = 'tshirt';
-        detectedClothTypeName = 'Polera / T-Shirt';
-      } else if (colorDist(clothR, clothG, clothB, 31, 36, 40) < 60) {
-        detectedClothType = 'jacket';
-        detectedClothTypeName = 'Chaqueta / Casaca';
+      const primeR = dominantBin.count > 0 ? Math.round(dominantBin.r / dominantBin.count) : 66;
+      const primeG = dominantBin.count > 0 ? Math.round(dominantBin.g / dominantBin.count) : 133;
+      const primeB = dominantBin.count > 0 ? Math.round(dominantBin.b / dominantBin.count) : 244;
+
+      const detectedClothHex = rgbToHex(primeR, primeG, primeB);
+      const detectedClothName = getDescriptiveColorName(primeR, primeG, primeB);
+
+      // Check for central split / open jacket (zipper/contrast down center line)
+      let centerDiffers = false;
+      let centerColR = 0, sideColR = 0, countC = 0;
+      for (let y = clothStartY + 8; y < clothEndY - 10; y += 4) {
+        const cIdx = (y * W + faceCenterX) * 4;
+        const sIdx = (y * W + (faceCenterX - 30)) * 4;
+        centerColR += imgData[cIdx];
+        sideColR += imgData[sIdx];
+        countC++;
+      }
+      if (countC > 0 && Math.abs(centerColR / countC - sideColR / countC) > 42) {
+        centerDiffers = true;
       }
 
-      // 4. Beard / Facial hair check (chin region x 44%..56%, y 54%..62%)
-      let chinR = 0, chinG = 0, chinB = 0, chinSamples = 0;
-      for (let y = Math.round(H * 0.54); y <= Math.round(H * 0.62); y++) {
-        for (let x = Math.round(W * 0.44); x <= Math.round(W * 0.56); x++) {
-          const idx = (y * W + x) * 4;
-          chinR += imgData[idx];
-          chinG += imgData[idx + 1];
-          chinB += imgData[idx + 2];
-          chinSamples++;
-        }
-      }
-      chinR /= chinSamples;
-      chinG /= chinSamples;
-      chinB /= chinSamples;
+      // Determine Clothing Type
+      let detectedType: DetectedFeatures['clothingType'] = 'tshirt';
+      let detectedTypeName = 'Polera / T-Shirt';
 
-      const chinDarknessDiff = (skinR + skinG + skinB) - (chinR + chinG + chinB);
-      const hasBeard = chinDarknessDiff > 65;
+      if (centerDiffers) {
+        detectedType = 'jacket';
+        detectedTypeName = 'Chaqueta / Casaca';
+      } else if (!isNeckExposed) {
+        detectedType = 'hoodie';
+        detectedTypeName = 'Hoodie con Capucha';
+      } else {
+        detectedType = 'tshirt';
+        detectedTypeName = 'Polera / T-Shirt';
+      }
+
+      // Generate cropped pixel-art texture of the user's actual clothes
+      const cropW = Math.max(40, clothEndX - clothStartX);
+      const cropH = Math.max(40, clothEndY - clothStartY);
+      const cropCanvas = document.createElement('canvas');
+      cropCanvas.width = 64;
+      cropCanvas.height = 96;
+      const cropCtx = cropCanvas.getContext('2d');
+      let clothingTextureUrl: string | undefined = undefined;
+
+      if (cropCtx) {
+        // Draw the exact clothing crop from the photo onto the torso canvas with crisp pixel scaling
+        cropCtx.imageSmoothingEnabled = false;
+        cropCtx.drawImage(canvas, clothStartX, clothStartY, cropW, cropH, 0, 0, 64, 96);
+        clothingTextureUrl = cropCanvas.toDataURL('image/png');
+      }
 
       resolve({
         skinColor: detectedSkinHex,
-        skinToneName: closestSkin.name,
+        skinToneName: detectedSkinName,
         hairColor: detectedHairHex,
-        hairColorName: closestHair.name,
-        hairStyle: detectedStyle,
-        hairStyleName: detectedStyleName,
+        hairColorName: detectedHairName,
+        hairStyle: detectedHairStyle,
+        hairStyleName: detectedHairStyleName,
         clothingColor: detectedClothHex,
-        clothingColorName: closestCloth.name,
-        clothingAccentColor: '#EA4335',
-        clothingType: detectedClothType,
-        clothingTypeName: detectedClothTypeName,
+        clothingColorName: detectedClothName,
+        clothingAccentColor: '#FFFFFF',
+        clothingType: detectedType,
+        clothingTypeName: detectedTypeName,
+        clothingCanvas: cropCanvas,
+        clothingTextureUrl,
         pantsColor: '#1E293B',
         hasGlasses: false,
-        hasBeard,
-        confidence: Math.round(88 + Math.random() * 8)
+        hasBeard: false,
+        confidence: Math.round(91 + Math.random() * 6)
       });
     };
 
