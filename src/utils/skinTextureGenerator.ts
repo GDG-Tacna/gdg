@@ -55,7 +55,8 @@ export function createFaceTexture(features: DetectedFeatures): THREE.CanvasTextu
     ctx.fillRect(30, 38, 4, 6);
 
     // 4. Mouth / Smile
-    ctx.fillStyle = 'rgba(150, 40, 40, 0.65)';
+    const lipCol = features.gender === 'female' ? (features.lipColor || '#C83E58') : 'rgba(150, 40, 40, 0.65)';
+    ctx.fillStyle = lipCol;
     ctx.fillRect(24, 48, 16, 4);
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(26, 48, 12, 2); // subtle teeth smile
@@ -85,8 +86,8 @@ export function createFaceTexture(features: DetectedFeatures): THREE.CanvasTextu
       ctx.fillRect(43, eyeY + 2, 3, 2);
     }
 
-    // 6. Beard / Goatee (if detected)
-    if (features.hasBeard) {
+    // 6. Beard / Goatee (strictly disabled for female presentation)
+    if (features.hasBeard && features.gender !== 'female') {
       ctx.fillStyle = features.hairColor;
       ctx.fillRect(20, 52, 24, 10);
       ctx.fillRect(24, 44, 16, 3); // mustache

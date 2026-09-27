@@ -1,4 +1,4 @@
-import { Sparkles, CheckCircle2, RefreshCw, Scissors, Shirt, Eye } from 'lucide-react';
+import { Sparkles, CheckCircle2, RefreshCw, Scissors, Shirt, Eye, User, Heart } from 'lucide-react';
 import type { DetectedFeatures } from '../utils/featureDetector';
 import { soundManager } from '../utils/sound';
 
@@ -25,6 +25,27 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
     });
   };
 
+  const handleGenderChange = (newGender: 'female' | 'male') => {
+    soundManager.playClick();
+    if (newGender === 'female') {
+      onChange({
+        ...features,
+        gender: 'female',
+        genderName: 'Femenino',
+        hasBeard: false,
+        beardStyle: undefined,
+        lipColor: features.lipColor || '#C83E58',
+        lipColorName: features.lipColorName || 'Rosa Frambuesa'
+      });
+    } else {
+      onChange({
+        ...features,
+        gender: 'male',
+        genderName: 'Masculino'
+      });
+    }
+  };
+
   const faceShapes: { id: DetectedFeatures['faceShape']; label: string }[] = [
     { id: 'oval', label: 'Óvalo' },
     { id: 'round', label: 'Redondo' },
@@ -34,7 +55,7 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
 
   const hairStyles: { id: DetectedFeatures['hairStyle']; label: string }[] = [
     { id: 'short', label: 'Corto' },
-    { id: 'curly', label: 'Ondulado / Afro' },
+    { id: 'curly', label: 'Ondulado' },
     { id: 'long', label: 'Largo' },
     { id: 'parted', label: 'De Lado' },
     { id: 'messy', label: 'Despeinado' },
@@ -60,6 +81,14 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
     { id: 'thin', label: 'Finas' },
     { id: 'medium', label: 'Medias' },
     { id: 'thick', label: 'Pobladas' }
+  ];
+
+  const lipPresets = [
+    { name: 'Baya / Frambuesa', color: '#B8384E' },
+    { name: 'Rojo Pasión', color: '#C82B3E' },
+    { name: 'Rosa Suave', color: '#E06B80' },
+    { name: 'Nude / Canela', color: '#BA6D5E' },
+    { name: 'Coral Cálido', color: '#DE5D53' },
   ];
 
   const beardStyles: { id: NonNullable<DetectedFeatures['beardStyle']>; label: string }[] = [
@@ -113,8 +142,40 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
       </div>
 
       <p className="font-pixel text-[11px] text-gray-300 leading-relaxed">
-        El analizador capturó la fisonomía de tu rostro (mandíbula, cejas, ojos, lentes, barba) y el color de tu ropa para vestir a tu personaje con <strong className="text-white">polera a juego y pantalón negro</strong>.
+        El analizador capturó la fisonomía de tu foto (rasgos faciales, ojos, labios, cabello y color de prenda). Viste una <strong className="text-white">polera en tu color y pantalón negro</strong>.
       </p>
+
+      {/* 0. Género & Estilo de Personaje */}
+      <div className="p-3 bg-[#111216] border-2 border-black space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <User size={14} className="text-[#FBBC05]" />
+            <span className="font-pixel text-xs text-white">GÉNERO / ESTILO:</span>
+          </div>
+          <span className="font-pixel-heading text-[10px] text-[#FBBC05]">
+            {features.gender === 'female' ? '👩 FEMENINO' : '👨 MASCULINO'}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => handleGenderChange('female')}
+            className={`pixel-btn text-[10px] py-2 px-2 flex items-center justify-center gap-2 ${
+              features.gender === 'female' ? 'pixel-btn-red text-white' : 'pixel-btn-dark'
+            }`}
+          >
+            <span>👩 Femenino</span>
+          </button>
+          <button
+            onClick={() => handleGenderChange('male')}
+            className={`pixel-btn text-[10px] py-2 px-2 flex items-center justify-center gap-2 ${
+              features.gender === 'male' ? 'pixel-btn-yellow text-black' : 'pixel-btn-dark'
+            }`}
+          >
+            <span>👨 Masculino</span>
+          </button>
+        </div>
+      </div>
 
       {/* 1. Forma de Rostro y Tono de Piel */}
       <div className="p-3 bg-[#111216] border-2 border-black space-y-2.5">
@@ -291,7 +352,44 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
         </div>
       </div>
 
-      {/* 4. Lentes & Barba */}
+      {/* 4. Labios & Pintalabios */}
+      <div className="p-3 bg-[#111216] border-2 border-black space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Heart size={14} className="text-[#EA4335]" />
+            <span className="font-pixel text-xs text-white">LABIOS & SONRISA:</span>
+          </div>
+          <span className="font-pixel-heading text-[10px] text-[#EA4335]">
+            {features.lipColorName || 'Rosa Natural'}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {lipPresets.map(lp => (
+            <button
+              key={lp.name}
+              onClick={() => {
+                updateFeature('lipColor', lp.color);
+                updateFeature('lipColorName', lp.name);
+              }}
+              className={`w-5 h-5 border-2 ${features.lipColor.toLowerCase() === lp.color.toLowerCase() ? 'border-white scale-110' : 'border-black'} shadow-[1px_1px_0_#000]`}
+              style={{ backgroundColor: lp.color }}
+              title={lp.name}
+            />
+          ))}
+          <label className="flex items-center gap-1 cursor-pointer font-pixel text-[9px] text-gray-400 ml-auto">
+            <span>Selector:</span>
+            <input
+              type="color"
+              value={features.lipColor || '#C83E58'}
+              onChange={(e) => updateFeature('lipColor', e.target.value)}
+              className="w-5 h-5 p-0 border border-black cursor-pointer bg-transparent"
+            />
+          </label>
+        </div>
+      </div>
+
+      {/* 5. Lentes & Barba */}
       <div className="p-3 bg-[#111216] border-2 border-black space-y-3">
         <div className="font-pixel text-xs text-white">LENTES & BARBA:</div>
 
@@ -313,9 +411,17 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
             }`}
           >
             <span>🧔 BARBA:</span>
-            <span className="font-pixel-heading">{features.hasBeard ? 'SÍ' : 'NO'}</span>
+            <span className="font-pixel-heading">
+              {features.hasBeard ? 'SÍ' : 'NO'}
+            </span>
           </button>
         </div>
+
+        {features.gender === 'female' && !features.hasBeard && (
+          <div className="font-pixel text-[9px] text-gray-400">
+            ℹ️ Barba desactivada por fisonomía femenina.
+          </div>
+        )}
 
         {/* Beard style selector if beard is enabled */}
         {features.hasBeard && (
@@ -338,7 +444,7 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
         )}
       </div>
 
-      {/* 5. Ropa (Strictly Polera + Pantalón Negro) */}
+      {/* 6. Ropa (Strictly Polera + Pantalón Negro) */}
       <div className="p-3 bg-[#111216] border-2 border-black space-y-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -379,7 +485,7 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
         </div>
       </div>
 
-      {/* 6. Accesorios del Personaje */}
+      {/* 7. Accesorios del Personaje */}
       <div className="pt-2 border-t-2 border-black/60">
         <label className="block font-pixel text-xs text-gray-300 mb-2">
           ACCESORIO:

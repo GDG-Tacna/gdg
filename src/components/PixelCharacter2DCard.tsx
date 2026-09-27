@@ -329,17 +329,21 @@ export const PixelCharacter2DCard: React.FC<PixelCharacter2DCardProps> = ({
           </div>
         </div>
 
-        {/* 3. Beard */}
+        {/* 3. Beard / Gender */}
         <div className="p-2 bg-[#121317] border border-black flex items-center gap-2">
-          <span className="text-base">🧔</span>
+          <span className="text-base">{features.gender === 'female' ? '👩' : '🧔'}</span>
           <div className="truncate">
-            <div className="text-gray-400 text-[8px]">BARBA:</div>
+            <div className="text-gray-400 text-[8px]">{features.gender === 'female' ? 'ESTILO:' : 'BARBA:'}</div>
             <div
               className={`font-pixel-heading text-[8px] ${
-                features.hasBeard ? 'text-[#34A853]' : 'text-gray-400'
+                features.hasBeard ? 'text-[#34A853]' : 'text-gray-300'
               }`}
             >
-              {features.hasBeard ? 'DETECTADA' : 'AFEITADO'}
+              {features.gender === 'female'
+                ? 'FEMENINO'
+                : features.hasBeard
+                ? 'DETECTADA'
+                : 'AFEITADO'}
             </div>
           </div>
         </div>
