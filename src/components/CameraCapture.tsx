@@ -20,7 +20,6 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCance
 
   // Start webcam stream
   const startCamera = async (mode: 'user' | 'environment') => {
-    setCameraError(null);
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
     }
@@ -40,6 +39,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onCance
         videoRef.current.srcObject = stream;
         videoRef.current.play();
       }
+      setCameraError(null);
     } catch (err: unknown) {
       console.error('Camera access error:', err);
       setCameraError('No se pudo acceder a la cámara. Asegúrate de otorgar permisos o sube una imagen.');

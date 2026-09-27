@@ -4,9 +4,12 @@ import { Navbar } from './components/Navbar';
 import { Footer } from './components/Footer';
 import { ImageUploader } from './components/ImageUploader';
 import { CameraCapture } from './components/CameraCapture';
+import { PixelCharacter2DCard } from './components/PixelCharacter2DCard';
 import { ThreePixelCharacter } from './components/ThreePixelCharacter';
+import { AvatarDisplay } from './components/AvatarDisplay';
 import { DetectionReviewCard } from './components/DetectionReviewCard';
 import { detectFeaturesFromImage, DEFAULT_DETECTED_FEATURES, type DetectedFeatures } from './utils/featureDetector';
+import { DEFAULT_PIXEL_OPTIONS } from './utils/pixelEngine';
 import { soundManager } from './utils/sound';
 
 export function App() {
@@ -17,10 +20,11 @@ export function App() {
   const [detectedFeatures, setDetectedFeatures] = useState<DetectedFeatures>(DEFAULT_DETECTED_FEATURES);
 
   // Character customization
-  const [playerName, setPlayerName] = useState('STEVE_DEV');
-  const [playerRole, setPlayerRole] = useState('GDG MINER');
-  const [accessory, setAccessory] = useState<'none' | 'diamond-helmet' | 'diamond-sword' | 'glasses'>('none');
+  const [playerName, setPlayerName] = useState('DEV_HERO');
+  const [playerRole, setPlayerRole] = useState('GDG TACNA');
+  const [accessory, setAccessory] = useState<'none' | 'lanyard' | 'coffee' | 'laptop' | 'gamepad' | 'sword'>('lanyard');
   const [activeTab, setActiveTab] = useState<'features' | 'identity'>('features');
+  const [viewMode, setViewMode] = useState<'2d' | '3d' | 'photo'>('2d');
 
   // UI state
   const [scanlinesEnabled, setScanlinesEnabled] = useState(false);
@@ -33,15 +37,17 @@ export function App() {
     setIsAnalyzing(true);
     soundManager.playPixelate();
 
-    // Sequence of retro analysis steps
+    // Sequence of retro analysis steps matching user requirements
     setAnalyzingStep('ANALIZANDO TONO DE PIEL...');
-    await new Promise(r => setTimeout(r, 450));
-    setAnalyzingStep('DETECTANDO COLOR Y ESTILO DE CABELLO...');
-    await new Promise(r => setTimeout(r, 450));
-    setAnalyzingStep('IDENTIFICANDO PRENDAS Y ROPA...');
-    await new Promise(r => setTimeout(r, 450));
-    setAnalyzingStep('CONSTRUYENDO PERSONAJE 3D PIXEL ART...');
-    await new Promise(r => setTimeout(r, 300));
+    await new Promise(r => setTimeout(r, 400));
+    setAnalyzingStep('DETECTANDO LENTES Y RASGOS FACIALES...');
+    await new Promise(r => setTimeout(r, 400));
+    setAnalyzingStep('ANALIZANDO BARBA Y VELLO FACIAL...');
+    await new Promise(r => setTimeout(r, 400));
+    setAnalyzingStep('IDENTIFICANDO TIPO DE PRENDA EN TORSO...');
+    await new Promise(r => setTimeout(r, 400));
+    setAnalyzingStep('CONSTRUYENDO PERSONAJE 2D PIXEL ART...');
+    await new Promise(r => setTimeout(r, 350));
 
     const features = await detectFeaturesFromImage(imgUrl);
     setDetectedFeatures(features);
@@ -70,19 +76,21 @@ export function App() {
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 bg-[#17181f] border-2 border-black p-2.5 shadow-[3px_3px_0_#000]">
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 bg-[#4285F4] animate-pulse inline-block" />
-              <span className="font-pixel-heading text-[10px] text-white">MODO: 3D VOXEL RECOGNITION</span>
+              <span className="w-2.5 h-2.5 bg-[#34A853] animate-pulse inline-block" />
+              <span className="font-pixel-heading text-[10px] text-white">
+                MODO: 2D PIXEL ART CHARACTER
+              </span>
             </div>
             <span className="text-gray-600">|</span>
             <div className="hidden sm:flex items-center gap-1 font-pixel text-[10px] text-[#34A853]">
               <span>IA SCANNER:</span>
-              <span className="text-white">EXTRACCIÓN DE RASGOS + 3D EN TIEMPO REAL</span>
+              <span className="text-white">TONO DE PIEL + LENTES + BARBA + PRENDA DE TORSO</span>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="px-2 py-0.5 bg-[#252733] border border-black text-[#FBBC05] font-pixel text-[10px]">
-              GDG 3D Pixel Studio
+              GDG Pixel Studio
             </span>
           </div>
         </div>
@@ -102,12 +110,12 @@ export function App() {
         {/* Scanning Loading State */}
         {isAnalyzing ? (
           <div className="pixel-box p-12 max-w-lg mx-auto text-center my-12 bg-[#17181f] relative overflow-hidden">
-            <div className="w-16 h-16 mx-auto mb-4 bg-[#4285F4]/20 border-2 border-[#4285F4] flex items-center justify-center animate-bounce">
-              <Box className="text-[#4285F4]" size={32} />
+            <div className="w-16 h-16 mx-auto mb-4 bg-[#34A853]/20 border-2 border-[#34A853] flex items-center justify-center animate-bounce">
+              <Box className="text-[#34A853]" size={32} />
             </div>
 
             <h3 className="font-pixel-heading text-sm text-[#FBBC05] mb-3">
-              ESCANEANDO RASGOS FACIALES
+              ESCANEANDO RASGOS FACIALES & PRENDA
             </h3>
 
             <div className="w-full bg-black border-2 border-black h-4 mb-4 overflow-hidden relative">
@@ -127,67 +135,172 @@ export function App() {
             />
 
             {/* Feature highlights banner */}
-            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+            <div className="mt-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-left">
               <div className="pixel-box p-4 bg-[#16171d]">
-                <div className="w-8 h-8 mb-2 bg-[#4285F4] border-2 border-black flex items-center justify-center text-white">
-                  👕
+                <div className="w-8 h-8 mb-2 bg-[#E0AC69] border-2 border-black flex items-center justify-center text-white text-base">
+                  🎨
+                </div>
+                <h4 className="font-pixel-heading text-xs text-[#FBBC05] mb-1">
+                  1. TONO DE PIEL
+                </h4>
+                <p className="font-pixel text-[11px] text-gray-400">
+                  Detección precisa del tono de tez real y matices faciales, transferidos al rostro, cuello y manos del personaje 2D.
+                </p>
+              </div>
+
+              <div className="pixel-box p-4 bg-[#16171d]">
+                <div className="w-8 h-8 mb-2 bg-[#4285F4] border-2 border-black flex items-center justify-center text-white text-base">
+                  👓
                 </div>
                 <h4 className="font-pixel-heading text-xs text-[#4285F4] mb-1">
-                  DETECCIÓN DE ROPA
+                  2. LENTES
                 </h4>
                 <p className="font-pixel text-[11px] text-gray-400">
-                  La IA detecta automáticamente el tipo de prenda (hoodie, polera, chaqueta) y sus colores para vestir a tu personaje 3D.
+                  Identifica si llevas gafas o lentes de lectura a través del puente nasal y genera monturas pixel art con reflejo de luz.
                 </p>
               </div>
 
               <div className="pixel-box p-4 bg-[#16171d]">
-                <div className="w-8 h-8 mb-2 bg-[#EA4335] border-2 border-black flex items-center justify-center text-white">
-                  💇
+                <div className="w-8 h-8 mb-2 bg-[#EA4335] border-2 border-black flex items-center justify-center text-white text-base">
+                  🧔
                 </div>
                 <h4 className="font-pixel-heading text-xs text-[#EA4335] mb-1">
-                  PEINADO & CORTE
+                  3. BARBA
                 </h4>
                 <p className="font-pixel text-[11px] text-gray-400">
-                  Identifica volumen, longitud y color de cabello generando la geometría 3D voxel adecuada (corto, ondulado, largo, etc.).
+                  Detecta barba completa, candado, bigote o sombra en el mentón combinando con el color de tu peinado.
                 </p>
               </div>
 
               <div className="pixel-box p-4 bg-[#16171d]">
-                <div className="w-8 h-8 mb-2 bg-[#34A853] border-2 border-black flex items-center justify-center text-white">
-                  🧱
+                <div className="w-8 h-8 mb-2 bg-[#34A853] border-2 border-black flex items-center justify-center text-white text-base">
+                  👕
                 </div>
                 <h4 className="font-pixel-heading text-xs text-[#34A853] mb-1">
-                  PERSONAJE 3D EN VIVO
+                  4. PRENDA EN TORSO
                 </h4>
                 <p className="font-pixel text-[11px] text-gray-400">
-                  Visualiza tu avatar en 360°, rota la cámara con el mouse, prueba animaciones (caminar, saludar) y exporta fotos nítidas.
+                  Identifica si vistes polera, hoodie con capucha, camisa o chaqueta y adapta el torso y mangas con los colores exactos.
                 </p>
               </div>
             </div>
           </div>
         ) : (
-          /* View 2: 3D Character Viewer + Detection Review */
+          /* View 2: 2D Pixel Character Generator + Controls */
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-            {/* Left: Three.js 3D Voxel Character Viewer (6 cols) */}
-            <div className="lg:col-span-6 sticky top-4">
-              <ThreePixelCharacter
-                features={detectedFeatures}
-                name={playerName}
-                role={playerRole}
-                accessory={accessory}
-              />
+            {/* Left: Character Viewports (6 cols) */}
+            <div className="lg:col-span-6 sticky top-4 space-y-3">
+              {/* View Switcher Tabs (2D Pixel Art by default!) */}
+              <div className="flex border-2 border-black p-1 bg-[#17181f] gap-1 shadow-[3px_3px_0_#000]">
+                <button
+                  onClick={() => {
+                    soundManager.playClick();
+                    setViewMode('2d');
+                  }}
+                  className={`pixel-btn text-[10px] py-1.5 px-3 flex-1 flex items-center justify-center gap-1.5 ${
+                    viewMode === '2d' ? 'pixel-btn-green' : 'pixel-btn-dark'
+                  }`}
+                >
+                  <span>👤</span>
+                  <span>PERSONAJE 2D</span>
+                </button>
 
-              {/* Original photo thumbnail comparison */}
-              <div className="mt-3 flex items-center gap-3 p-2 bg-[#17181f] border-2 border-black">
+                <button
+                  onClick={() => {
+                    soundManager.playClick();
+                    setViewMode('3d');
+                  }}
+                  className={`pixel-btn text-[10px] py-1.5 px-3 flex-1 flex items-center justify-center gap-1.5 ${
+                    viewMode === '3d' ? 'pixel-btn-blue' : 'pixel-btn-dark'
+                  }`}
+                >
+                  <span>🧊</span>
+                  <span>MODELO 3D</span>
+                </button>
+
+                <button
+                  onClick={() => {
+                    soundManager.playClick();
+                    setViewMode('photo');
+                  }}
+                  className={`pixel-btn text-[10px] py-1.5 px-3 flex-1 flex items-center justify-center gap-1.5 ${
+                    viewMode === 'photo' ? 'pixel-btn-yellow' : 'pixel-btn-dark'
+                  }`}
+                >
+                  <span>📷</span>
+                  <span>FOTO PIXEL</span>
+                </button>
+              </div>
+
+              {/* View Mode 1: 2D Pixel Art Character (Primary) */}
+              {viewMode === '2d' && (
+                <PixelCharacter2DCard
+                  features={detectedFeatures}
+                  name={playerName}
+                  role={playerRole}
+                  sourceImage={sourceImage}
+                  onRetake={() => setSourceImage(null)}
+                  accessory={accessory}
+                  onAccessoryChange={setAccessory}
+                />
+              )}
+
+              {/* View Mode 2: 3D Voxel Model */}
+              {viewMode === '3d' && (
+                <div className="space-y-3">
+                  <ThreePixelCharacter
+                    features={detectedFeatures}
+                    name={playerName}
+                    role={playerRole}
+                    accessory={accessory === 'sword' ? 'diamond-sword' : accessory === 'laptop' ? 'none' : 'none'}
+                  />
+                  <div className="p-2 bg-[#17181f] border-2 border-black flex items-center justify-between text-[10px] text-gray-400">
+                    <span>💡 Usa el mouse para rotar en 360° o hacer zoom</span>
+                    <button
+                      onClick={() => setViewMode('2d')}
+                      className="pixel-btn pixel-btn-green text-[9px] py-1 px-2"
+                    >
+                      VOLVER A 2D
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* View Mode 3: Photo Pixel Filter */}
+              {viewMode === 'photo' && (
+                <AvatarDisplay
+                  sourceImage={sourceImage}
+                  options={{
+                    ...DEFAULT_PIXEL_OPTIONS,
+                    name: playerName,
+                    role: playerRole
+                  }}
+                  onChangePhoto={() => setSourceImage(null)}
+                />
+              )}
+
+              {/* Original photo comparison preview */}
+              <div className="flex items-center gap-3 p-2.5 bg-[#17181f] border-2 border-black shadow-[2px_2px_0_#000]">
                 <img
                   src={sourceImage}
                   alt="Original"
                   className="w-12 h-12 object-cover border border-black shadow-[2px_2px_0_#000]"
                 />
-                <div className="text-left font-pixel text-[10px]">
+                <div className="text-left font-pixel text-[10px] flex-1">
                   <div className="text-gray-400">FOTO ORIGINAL ESCANEADA</div>
-                  <div className="text-[#34A853]">Rasgos transferidos a tu personaje 3D</div>
+                  <div className="text-[#34A853]">
+                    Rasgos transferidos a tu personaje 2D pixel art
+                  </div>
                 </div>
+                <button
+                  onClick={() => {
+                    soundManager.playClick();
+                    setSourceImage(null);
+                  }}
+                  className="pixel-btn pixel-btn-dark text-[9px] py-1 px-2 text-gray-400 hover:text-white"
+                >
+                  CAMBIAR
+                </button>
               </div>
             </div>
 
@@ -218,7 +331,7 @@ export function App() {
                   }`}
                 >
                   <User size={14} />
-                  <span>2. NOMBRE & TAG 3D</span>
+                  <span>2. IDENTIDAD & TAG</span>
                 </button>
               </div>
 
@@ -239,14 +352,14 @@ export function App() {
                   <div className="flex items-center gap-2 border-b-2 border-black pb-2">
                     <User className="text-[#FBBC05]" size={18} />
                     <h3 className="font-pixel-heading text-xs text-[#FBBC05]">
-                      IDENTIDAD DE JUGADOR
+                      IDENTIDAD DE JUGADOR & DEV
                     </h3>
                   </div>
 
                   {/* Name Input */}
                   <div>
                     <label className="block font-pixel text-xs text-gray-300 mb-1.5">
-                      NOMBRE EN EL TAG FLOTANTE 3D:
+                      NOMBRE EN EL TAG DEL PERSONAJE:
                     </label>
                     <input
                       type="text"
@@ -261,20 +374,20 @@ export function App() {
                   {/* Role / Subtitle Input */}
                   <div>
                     <label className="block font-pixel text-xs text-gray-300 mb-1.5">
-                      CLAN / COMUNIDAD:
+                      CLAN / COMUNIDAD (SUBTÍTULO):
                     </label>
                     <input
                       type="text"
                       maxLength={20}
                       value={playerRole}
                       onChange={(e) => setPlayerRole(e.target.value.toUpperCase())}
-                      placeholder="EJ: GDG COMMUNITY"
+                      placeholder="EJ: GDG TACNA"
                       className="w-full pixel-input text-xs uppercase text-[#FBBC05] font-pixel"
                     />
 
                     {/* Quick Suggestions */}
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {['GDG MINER', 'GOOGLE DEV', 'VOXEL HERO', 'FULLSTACK', 'AI MASTER'].map(tag => (
+                      {['GDG TACNA', 'GOOGLE DEV', 'FULLSTACK', 'VOXEL HERO', 'AI MASTER'].map(tag => (
                         <button
                           key={tag}
                           type="button"
@@ -291,8 +404,10 @@ export function App() {
                   </div>
 
                   {/* Info Box */}
-                  <div className="p-3 bg-[#111216] border border-black text-gray-400 text-[11px] leading-relaxed">
-                    💡 La etiqueta flotante se renderiza directamente sobre la cabeza del personaje 3D con tu nivel de experiencia <span className="text-[#55FF55]">99</span> y gira junto con el modelo.
+                  <div className="p-3 bg-[#111216] border border-black text-gray-400 text-[11px] leading-relaxed space-y-1">
+                    <div>
+                      💡 El nombre se renderiza en la placa flotante retro sobre el personaje y en la <strong className="text-white">Credencial Oficial GDG Pass</strong>.
+                    </div>
                   </div>
                 </div>
               )}

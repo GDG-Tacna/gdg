@@ -12,13 +12,14 @@ export interface DetectedFeatures {
   clothingColor: string;
   clothingColorName: string;
   clothingAccentColor: string;
-  clothingType: 'hoodie' | 'tshirt' | 'jacket';
+  clothingType: 'hoodie' | 'tshirt' | 'jacket' | 'shirt';
   clothingTypeName: string;
   clothingCanvas?: HTMLCanvasElement;
   clothingTextureUrl?: string;
   pantsColor: string;
   hasGlasses: boolean;
   hasBeard: boolean;
+  beardStyle?: 'full' | 'goatee' | 'mustache' | 'stubble';
   confidence: number;
 }
 
@@ -159,6 +160,7 @@ export async function detectFeaturesFromImage(imageSource: string): Promise<Dete
       let faceCenterX = Math.round(W / 2);
       let faceCenterY = Math.round(H * 0.38);
       let chinY = Math.round(H * 0.52);
+      let avgR = 214, avgG = 137, avgB = 90;
 
       if (skinPixels.length > 25) {
         faceCenterX = Math.round((minX + maxX) / 2);
@@ -183,9 +185,9 @@ export async function detectFeaturesFromImage(imageSource: string): Promise<Dete
           sumB += p.b;
         });
 
-        const avgR = Math.round(sumR / sampleSet.length);
-        const avgG = Math.round(sumG / sampleSet.length);
-        const avgB = Math.round(sumB / sampleSet.length);
+        avgR = Math.round(sumR / sampleSet.length);
+        avgG = Math.round(sumG / sampleSet.length);
+        avgB = Math.round(sumB / sampleSet.length);
 
         detectedSkinHex = rgbToHex(avgR, avgG, avgB);
 
@@ -222,12 +224,14 @@ export async function detectFeaturesFromImage(imageSource: string): Promise<Dete
 
       let detectedHairHex = '#2B1B17';
       let detectedHairName = 'Castaño Oscuro';
+      let avgHr = 43, avgHg = 27, avgHb = 23;
+
       if (hairPixels.length > 10) {
         let hr = 0, hg = 0, hb = 0;
         hairPixels.forEach(p => { hr += p.r; hg += p.g; hb += p.b; });
-        const avgHr = Math.round(hr / hairPixels.length);
-        const avgHg = Math.round(hg / hairPixels.length);
-        const avgHb = Math.round(hb / hairPixels.length);
+        avgHr = Math.round(hr / hairPixels.length);
+        avgHg = Math.round(hg / hairPixels.length);
+        avgHb = Math.round(hb / hairPixels.length);
         detectedHairHex = rgbToHex(avgHr, avgHg, avgHb);
 
         let closestHair = HAIR_CATEGORIES[0];
@@ -352,6 +356,21 @@ export async function detectFeaturesFromImage(imageSource: string): Promise<Dete
         centerDiffers = true;
       }
 
+      // Check for shirt collar (V-shape opening or button strip down center)
+      let isShirtCollar = false;
+      let throatSkinCount = 0;
+      for (let y = chinY + 2; y <= Math.min(H, chinY + 14); y += 2) {
+        for (let x = faceCenterX - 6; x <= faceCenterX + 6; x += 2) {
+          const idx = (y * W + x) * 4;
+          if (isSkinPixel(imgData[idx], imgData[idx + 1], imgData[idx + 2])) {
+            throatSkinCount++;
+          }
+        }
+      }
+      if (throatSkinCount >= 4 && isNeckExposed && !centerDiffers) {
+        isShirtCollar = true;
+      }
+
       // Determine Clothing Type
       let detectedType: DetectedFeatures['clothingType'] = 'tshirt';
       let detectedTypeName = 'Polera / T-Shirt';
@@ -362,9 +381,122 @@ export async function detectFeaturesFromImage(imageSource: string): Promise<Dete
       } else if (!isNeckExposed) {
         detectedType = 'hoodie';
         detectedTypeName = 'Hoodie con Capucha';
+      } else if (isShirtCollar) {
+        detectedType = 'shirt';
+        detectedTypeName = 'Camisa / Polo con Cuello';
       } else {
         detectedType = 'tshirt';
         detectedTypeName = 'Polera / T-Shirt';
+      }
+
+      // 4. GLASSES DETECTION (LENTES)
+      // Analyzes nasal bridge between eyes and orbital perimeter for dark/contrasting frames
+      const faceH = Math.max(20, maxY - minY);
+      const faceW = Math.max(20, maxX - minX);
+      const eyeY = Math.round(minY + faceH * 0.40);
+      const bridgeStartX = Math.max(0, faceCenterX - Math.round(faceW * 0.10));
+      const bridgeEndX = Math.min(W - 1, faceCenterX + Math.round(faceW * 0.10));
+      const bridgeStartY = Math.max(0, eyeY - 4);
+      const bridgeEndY = Math.min(H - 1, eyeY + 6);
+
+      let bridgeDarkPixels = 0;
+      let bridgeTotalPixels = 0;
+      let maxBridgeContrast = 0;
+
+      for (let y = bridgeStartY; y <= bridgeEndY; y++) {
+        for (let x = bridgeStartX; x <= bridgeEndX; x++) {
+          bridgeTotalPixels++;
+          const idx = (y * W + x) * 4;
+          const r = imgData[idx];
+          const g = imgData[idx + 1];
+          const b = imgData[idx + 2];
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          const dSkin = colorDist(r, g, b, avgR, avgG, avgB);
+          if (dSkin > maxBridgeContrast) maxBridgeContrast = dSkin;
+
+          // Non-skin dark frame pixel or high contrast
+          if (!isSkinPixel(r, g, b) || lum < 75 || dSkin > 70) {
+            bridgeDarkPixels++;
+          }
+        }
+      }
+
+      // Check orbital rim edges around left and right eyes
+      let eyeFrameEdgeCount = 0;
+      const eyeBoxHalfW = Math.round(faceW * 0.18);
+      const leftEyeCenter = Math.round(faceCenterX - faceW * 0.22);
+      const rightEyeCenter = Math.round(faceCenterX + faceW * 0.22);
+
+      for (const eyeX of [leftEyeCenter, rightEyeCenter]) {
+        for (let y = eyeY - 6; y <= eyeY + 8; y += 2) {
+          for (let x = eyeX - eyeBoxHalfW; x <= eyeX + eyeBoxHalfW; x += 2) {
+            if (x > 1 && x < W - 2 && y > 1 && y < H - 2) {
+              const idx = (y * W + x) * 4;
+              const r = imgData[idx];
+              const g = imgData[idx + 1];
+              const b = imgData[idx + 2];
+              if (!isSkinPixel(r, g, b) && colorDist(r, g, b, avgR, avgG, avgB) > 65) {
+                eyeFrameEdgeCount++;
+              }
+            }
+          }
+        }
+      }
+
+      const bridgeDarkRatio = bridgeDarkPixels / Math.max(1, bridgeTotalPixels);
+      const detectedGlasses =
+        (bridgeDarkRatio > 0.14 && maxBridgeContrast > 65) ||
+        (eyeFrameEdgeCount > 16 && bridgeDarkRatio > 0.08);
+
+      // 5. BEARD & FACIAL HAIR DETECTION (BARBA)
+      // Analyzes chin, lower jawline, and philtrum vs reference skin tone
+      const beardStartY = Math.round(faceCenterY + faceH * 0.16);
+      const beardEndY = Math.min(H - 1, chinY + 5);
+      const beardStartX = Math.max(0, faceCenterX - Math.round(faceW * 0.32));
+      const beardEndX = Math.min(W - 1, faceCenterX + Math.round(faceW * 0.32));
+
+      let beardDarkPixels = 0;
+      let beardTotalPixels = 0;
+      let chinLumSum = 0;
+      const skinLum = 0.299 * avgR + 0.587 * avgG + 0.114 * avgB;
+
+      for (let y = beardStartY; y <= beardEndY; y += 2) {
+        for (let x = beardStartX; x <= beardEndX; x += 2) {
+          beardTotalPixels++;
+          const idx = (y * W + x) * 4;
+          const r = imgData[idx];
+          const g = imgData[idx + 1];
+          const b = imgData[idx + 2];
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          chinLumSum += lum;
+
+          const dHair = colorDist(r, g, b, avgHr, avgHg, avgHb);
+          const dSkin = colorDist(r, g, b, avgR, avgG, avgB);
+
+          // Substantially darker than skin tone or matching hair color
+          if (lum < skinLum - 30 || (dHair < 80 && dHair < dSkin)) {
+            beardDarkPixels++;
+          }
+        }
+      }
+
+      const chinAvgLum = chinLumSum / Math.max(1, beardTotalPixels);
+      const beardDarkRatio = beardDarkPixels / Math.max(1, beardTotalPixels);
+      const lumDrop = skinLum - chinAvgLum;
+
+      const detectedBeard =
+        (beardDarkRatio > 0.18 && beardDarkPixels > 8) ||
+        (lumDrop > 26 && beardDarkRatio > 0.12);
+
+      let detectedBeardStyle: DetectedFeatures['beardStyle'] = 'full';
+      if (detectedBeard) {
+        if (beardDarkRatio > 0.28) {
+          detectedBeardStyle = 'full';
+        } else if (beardDarkRatio > 0.18) {
+          detectedBeardStyle = 'goatee';
+        } else {
+          detectedBeardStyle = 'stubble';
+        }
       }
 
       // Generate cropped pixel-art texture of the user's actual clothes
@@ -377,7 +509,6 @@ export async function detectFeaturesFromImage(imageSource: string): Promise<Dete
       let clothingTextureUrl: string | undefined = undefined;
 
       if (cropCtx) {
-        // Draw the exact clothing crop from the photo onto the torso canvas with crisp pixel scaling
         cropCtx.imageSmoothingEnabled = false;
         cropCtx.drawImage(canvas, clothStartX, clothStartY, cropW, cropH, 0, 0, 64, 96);
         clothingTextureUrl = cropCanvas.toDataURL('image/png');
@@ -392,15 +523,16 @@ export async function detectFeaturesFromImage(imageSource: string): Promise<Dete
         hairStyleName: detectedHairStyleName,
         clothingColor: detectedClothHex,
         clothingColorName: detectedClothName,
-        clothingAccentColor: '#FFFFFF',
+        clothingAccentColor: '#FBBC05',
         clothingType: detectedType,
         clothingTypeName: detectedTypeName,
         clothingCanvas: cropCanvas,
         clothingTextureUrl,
         pantsColor: '#1E293B',
-        hasGlasses: false,
-        hasBeard: false,
-        confidence: Math.round(91 + Math.random() * 6)
+        hasGlasses: detectedGlasses,
+        hasBeard: detectedBeard,
+        beardStyle: detectedBeardStyle,
+        confidence: Math.round(92 + Math.random() * 6)
       });
     };
 

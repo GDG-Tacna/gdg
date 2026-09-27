@@ -19,6 +19,7 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [showOriginal, setShowOriginal] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [cardCanvasSource, setCardCanvasSource] = useState<HTMLCanvasElement | null>(null);
   const [showIdCardModal, setShowIdCardModal] = useState(false);
   const [imgElement, setImgElement] = useState<HTMLImageElement | null>(null);
 
@@ -160,6 +161,7 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({
         <button
           onClick={() => {
             soundManager.playClick();
+            setCardCanvasSource(canvasRef.current);
             setShowIdCardModal(true);
           }}
           className="pixel-btn pixel-btn-blue text-xs py-3 px-3 shadow-[3px_3px_0_#000]"
@@ -183,7 +185,7 @@ export const AvatarDisplay: React.FC<AvatarDisplayProps> = ({
       {/* ID Card Modal */}
       {showIdCardModal && (
         <GdgIdCardModal
-          avatarCanvas={canvasRef.current}
+          avatarCanvas={cardCanvasSource}
           name={options.name || 'DEVELOPER'}
           role={options.role || 'GDG COMMUNITY'}
           onClose={() => setShowIdCardModal(false)}

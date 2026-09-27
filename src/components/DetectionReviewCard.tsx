@@ -5,8 +5,8 @@ import { soundManager } from '../utils/sound';
 interface DetectionReviewCardProps {
   features: DetectedFeatures;
   onChange: (features: DetectedFeatures) => void;
-  accessory: 'none' | 'diamond-helmet' | 'diamond-sword' | 'glasses';
-  onAccessoryChange: (acc: 'none' | 'diamond-helmet' | 'diamond-sword' | 'glasses') => void;
+  accessory: 'none' | 'lanyard' | 'coffee' | 'laptop' | 'gamepad' | 'sword';
+  onAccessoryChange: (acc: 'none' | 'lanyard' | 'coffee' | 'laptop' | 'gamepad' | 'sword') => void;
   onRetake: () => void;
 }
 
@@ -37,7 +37,15 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
   const clothingTypes: { id: DetectedFeatures['clothingType']; label: string }[] = [
     { id: 'hoodie', label: 'Hoodie' },
     { id: 'tshirt', label: 'Polera' },
+    { id: 'shirt', label: 'Camisa / Polo' },
     { id: 'jacket', label: 'Chaqueta' }
+  ];
+
+  const beardStyles: { id: NonNullable<DetectedFeatures['beardStyle']>; label: string }[] = [
+    { id: 'full', label: 'Completa' },
+    { id: 'goatee', label: 'Candado' },
+    { id: 'mustache', label: 'Bigote' },
+    { id: 'stubble', label: 'Corta / Sombra' }
   ];
 
   const skinPresets = [
@@ -186,7 +194,7 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
         </div>
 
         {/* Clothing type buttons */}
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
           {clothingTypes.map(c => (
             <button
               key={c.id}
@@ -230,39 +238,65 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
       </div>
 
       {/* 4. Rasgos Adicionales (Lentes / Barba) */}
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={() => updateFeature('hasGlasses', !features.hasGlasses)}
-          className={`pixel-btn text-[10px] py-2 px-2 flex items-center justify-between ${
-            features.hasGlasses ? 'pixel-btn-yellow' : 'pixel-btn-dark'
-          }`}
-        >
-          <span>👓 LENTES LECTURA:</span>
-          <span>{features.hasGlasses ? 'SÍ' : 'NO'}</span>
-        </button>
+      <div className="p-3 bg-[#111216] border-2 border-black space-y-3">
+        <div className="font-pixel text-xs text-white">RASGOS FACIALES DETECTADOS:</div>
 
-        <button
-          onClick={() => updateFeature('hasBeard', !features.hasBeard)}
-          className={`pixel-btn text-[10px] py-2 px-2 flex items-center justify-between ${
-            features.hasBeard ? 'pixel-btn-yellow' : 'pixel-btn-dark'
-          }`}
-        >
-          <span>🧔 BARBA:</span>
-          <span>{features.hasBeard ? 'SÍ' : 'NO'}</span>
-        </button>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => updateFeature('hasGlasses', !features.hasGlasses)}
+            className={`pixel-btn text-[10px] py-2 px-2 flex items-center justify-between ${
+              features.hasGlasses ? 'pixel-btn-yellow' : 'pixel-btn-dark'
+            }`}
+          >
+            <span>👓 LENTES:</span>
+            <span className="font-pixel-heading">{features.hasGlasses ? 'SÍ' : 'NO'}</span>
+          </button>
+
+          <button
+            onClick={() => updateFeature('hasBeard', !features.hasBeard)}
+            className={`pixel-btn text-[10px] py-2 px-2 flex items-center justify-between ${
+              features.hasBeard ? 'pixel-btn-yellow' : 'pixel-btn-dark'
+            }`}
+          >
+            <span>🧔 BARBA:</span>
+            <span className="font-pixel-heading">{features.hasBeard ? 'SÍ' : 'NO'}</span>
+          </button>
+        </div>
+
+        {/* Beard style selector if beard is enabled */}
+        {features.hasBeard && (
+          <div className="pt-2 border-t border-black">
+            <div className="font-pixel text-[10px] text-gray-400 mb-1.5">Estilo de Barba:</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
+              {beardStyles.map(b => (
+                <button
+                  key={b.id}
+                  onClick={() => updateFeature('beardStyle', b.id)}
+                  className={`pixel-btn text-[8px] py-1 px-1 ${
+                    (features.beardStyle || 'full') === b.id ? 'pixel-btn-yellow' : 'pixel-btn-dark'
+                  }`}
+                >
+                  {b.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* 5. Accesorios 3D Minecraft */}
+      {/* 5. Accesorios en el Personaje */}
       <div className="pt-2 border-t-2 border-black/60">
         <label className="block font-pixel text-xs text-gray-300 mb-2">
-          ACCESORIO 3D EN EL PERSONAJE:
+          ACCESORIO DEL PERSONAJE:
         </label>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
           {[
+            { id: 'lanyard', label: 'Credencial', icon: '🪪' },
+            { id: 'coffee', label: 'Café Dev', icon: '☕' },
+            { id: 'laptop', label: 'Laptop', icon: '💻' },
+            { id: 'gamepad', label: 'Gamepad', icon: '🎮' },
+            { id: 'sword', label: 'Espada', icon: '⚔️' },
             { id: 'none', label: 'Ninguno', icon: '❌' },
-            { id: 'diamond-helmet', label: 'Casco Diamante', icon: '🪖' },
-            { id: 'diamond-sword', label: 'Espada Diamante', icon: '⚔️' },
-            { id: 'glasses', label: 'Lentes Lectura', icon: '👓' },
           ].map(acc => (
             <button
               key={acc.id}
@@ -274,7 +308,7 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
                 accessory === acc.id ? 'pixel-btn-green' : 'pixel-btn-dark'
               }`}
             >
-              <span>{acc.icon}</span>
+              <span className="text-sm">{acc.icon}</span>
               <span className="truncate text-[8px]">{acc.label}</span>
             </button>
           ))}
