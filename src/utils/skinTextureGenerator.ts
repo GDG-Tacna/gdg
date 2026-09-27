@@ -202,50 +202,8 @@ export function createTorsoTexture(features: DetectedFeatures): THREE.CanvasText
         ctx.fillRect(6, 62, 14, 16);
         ctx.fillRect(44, 62, 14, 16);
 
-      } else if (features.clothingType === 'shirt') {
-        // --- SHIRT / POLO CON CUELLO ---
-        ctx.fillStyle = features.clothingColor;
-        ctx.fillRect(0, 0, 64, 96);
-
-        // V-neck throat
-        ctx.fillStyle = features.skinColor;
-        ctx.beginPath();
-        ctx.moveTo(24, 0);
-        ctx.lineTo(40, 0);
-        ctx.lineTo(32, 18);
-        ctx.closePath();
-        ctx.fill();
-
-        // Collar lapels
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-        ctx.beginPath();
-        ctx.moveTo(22, 0);
-        ctx.lineTo(16, 20);
-        ctx.lineTo(26, 18);
-        ctx.closePath();
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(42, 0);
-        ctx.lineTo(48, 20);
-        ctx.lineTo(38, 18);
-        ctx.closePath();
-        ctx.fill();
-
-        // Button placket
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        ctx.fillRect(30, 18, 4, 74);
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(31, 26, 2, 2);
-        ctx.fillRect(31, 46, 2, 2);
-        ctx.fillRect(31, 66, 2, 2);
-
-        // Chest pocket
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-        ctx.fillRect(10, 32, 12, 14);
-
       } else {
-        // --- HOODIE / SUDADERA CON CAPUCHA ---
+        // --- POLERA / T-SHIRT (DEFAULT) ---
         ctx.fillStyle = features.clothingColor;
         ctx.fillRect(0, 0, 64, 96);
 

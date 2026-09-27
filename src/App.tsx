@@ -38,16 +38,18 @@ export function App() {
     soundManager.playPixelate();
 
     // Sequence of retro analysis steps matching user requirements
-    setAnalyzingStep('ANALIZANDO TONO DE PIEL...');
-    await new Promise(r => setTimeout(r, 400));
-    setAnalyzingStep('DETECTANDO LENTES Y RASGOS FACIALES...');
-    await new Promise(r => setTimeout(r, 400));
-    setAnalyzingStep('ANALIZANDO BARBA Y VELLO FACIAL...');
-    await new Promise(r => setTimeout(r, 400));
-    setAnalyzingStep('IDENTIFICANDO TIPO DE PRENDA EN TORSO...');
-    await new Promise(r => setTimeout(r, 400));
-    setAnalyzingStep('CONSTRUYENDO PERSONAJE 2D PIXEL ART...');
+    setAnalyzingStep('ANALIZANDO ESTRUCTURA FACIAL Y TEZ...');
+    await new Promise(r => setTimeout(r, 380));
+    setAnalyzingStep('EXTRAYENDO VOLUMEN, COLOR Y PEINADO...');
+    await new Promise(r => setTimeout(r, 380));
+    setAnalyzingStep('IDENTIFICANDO OJOS, LENTES Y CEJAS...');
+    await new Promise(r => setTimeout(r, 380));
+    setAnalyzingStep('DETECTANDO BARBA Y VELLO FACIAL...');
+    await new Promise(r => setTimeout(r, 380));
+    setAnalyzingStep('CONFIGURANDO POLERA A JUEGO Y PANTALÓN NEGRO...');
     await new Promise(r => setTimeout(r, 350));
+    setAnalyzingStep('CONSTRUYENDO PERSONAJE 2D PIXEL ART FIEL...');
+    await new Promise(r => setTimeout(r, 300));
 
     const features = await detectFeaturesFromImage(imgUrl);
     setDetectedFeatures(features);
@@ -177,10 +179,10 @@ export function App() {
                   👕
                 </div>
                 <h4 className="font-pixel-heading text-xs text-[#34A853] mb-1">
-                  4. PRENDA EN TORSO
+                  4. POLERA & PANTALÓN NEGRO
                 </h4>
                 <p className="font-pixel text-[11px] text-gray-400">
-                  Identifica si vistes polera, hoodie con capucha, camisa o chaqueta y adapta el torso y mangas con los colores exactos.
+                  La polera adopta el color de la ropa de tu foto, combinada permanentemente con un pantalón negro clásico.
                 </p>
               </div>
             </div>

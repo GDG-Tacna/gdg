@@ -344,16 +344,16 @@ export const PixelCharacter2DCard: React.FC<PixelCharacter2DCardProps> = ({
           </div>
         </div>
 
-        {/* 4. Torso garment */}
+        {/* 4. Torso garment & pants */}
         <div className="p-2 bg-[#121317] border border-black flex items-center gap-2">
           <span
             className="w-3.5 h-3.5 border border-black inline-block shadow-[1px_1px_0_#000]"
             style={{ backgroundColor: features.clothingColor }}
           />
           <div className="truncate">
-            <div className="text-gray-400 text-[8px]">TORSO:</div>
+            <div className="text-gray-400 text-[8px]">ROPA:</div>
             <div className="text-white truncate font-pixel-heading text-[8px]">
-              {features.clothingTypeName}
+              Polera + Pant. Negro
             </div>
           </div>
         </div>

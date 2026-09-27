@@ -60,23 +60,14 @@ export function generateSamplePortrait(type: 'dev1' | 'dev2' | 'dev3'): string {
     ctx.lineTo(155, 290);
     ctx.stroke();
   } else if (type === 'dev2') {
-    // Lighter skin tone with Red jacket and yellow shirt
+    // Lighter skin tone with Red Polera and Glasses
     ctx.fillStyle = '#DCE5FA';
     ctx.fillRect(0, 0, 300, 300);
 
-    // Red jacket
+    // Red Polera (T-Shirt)
     ctx.fillStyle = '#EA4335';
     ctx.beginPath();
     ctx.ellipse(150, 280, 120, 90, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Yellow shirt inner
-    ctx.fillStyle = '#FBBC05';
-    ctx.beginPath();
-    ctx.moveTo(125, 220);
-    ctx.lineTo(175, 220);
-    ctx.lineTo(150, 280);
-    ctx.closePath();
     ctx.fill();
 
     // Neck

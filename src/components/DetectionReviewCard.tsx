@@ -1,4 +1,4 @@
-import { Sparkles, CheckCircle2, RefreshCw, Scissors, Shirt } from 'lucide-react';
+import { Sparkles, CheckCircle2, RefreshCw, Scissors, Shirt, Eye } from 'lucide-react';
 import type { DetectedFeatures } from '../utils/featureDetector';
 import { soundManager } from '../utils/sound';
 
@@ -25,6 +25,13 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
     });
   };
 
+  const faceShapes: { id: DetectedFeatures['faceShape']; label: string }[] = [
+    { id: 'oval', label: 'Óvalo' },
+    { id: 'round', label: 'Redondo' },
+    { id: 'square', label: 'Cuadrado' },
+    { id: 'slim', label: 'Mentón V' }
+  ];
+
   const hairStyles: { id: DetectedFeatures['hairStyle']; label: string }[] = [
     { id: 'short', label: 'Corto' },
     { id: 'curly', label: 'Ondulado / Afro' },
@@ -34,11 +41,25 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
     { id: 'bald', label: 'Rapado' }
   ];
 
-  const clothingTypes: { id: DetectedFeatures['clothingType']; label: string }[] = [
-    { id: 'hoodie', label: 'Hoodie' },
-    { id: 'tshirt', label: 'Polera' },
-    { id: 'shirt', label: 'Camisa / Polo' },
-    { id: 'jacket', label: 'Chaqueta' }
+  const bangsStyles: { id: DetectedFeatures['hairBangs']; label: string }[] = [
+    { id: 'side-swept', label: 'De Lado' },
+    { id: 'forehead-exposed', label: 'Despejada' },
+    { id: 'straight', label: 'Flequillo' },
+    { id: 'parted', label: 'Al Medio' }
+  ];
+
+  const eyeColors = [
+    { name: 'Castaño Oscuro', color: '#1F1612' },
+    { name: 'Castaño Claro', color: '#482D1B' },
+    { name: 'Miel / Ámbar', color: '#8A562B' },
+    { name: 'Verde', color: '#4E8B42' },
+    { name: 'Azul', color: '#3A75C4' },
+  ];
+
+  const eyebrowOptions: { id: DetectedFeatures['eyebrowThickness']; label: string }[] = [
+    { id: 'thin', label: 'Finas' },
+    { id: 'medium', label: 'Medias' },
+    { id: 'thick', label: 'Pobladas' }
   ];
 
   const beardStyles: { id: NonNullable<DetectedFeatures['beardStyle']>; label: string }[] = [
@@ -71,18 +92,18 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
     { name: 'Rojo Google', color: '#EA4335' },
     { name: 'Amarillo Google', color: '#FBBC05' },
     { name: 'Verde Google', color: '#34A853' },
-    { name: 'Negro', color: '#1F2428' },
+    { name: 'Negro Carbón', color: '#1F2428' },
     { name: 'Blanco', color: '#E5E7EB' },
   ];
 
   return (
-    <div className="pixel-box p-4 space-y-5 text-left bg-[#181920]">
+    <div className="pixel-box p-4 space-y-4 text-left bg-[#181920]">
       {/* Header */}
       <div className="flex items-center justify-between border-b-2 border-black pb-2">
         <div className="flex items-center gap-2">
           <Sparkles className="text-[#FBBC05]" size={18} />
           <h3 className="font-pixel-heading text-xs text-[#FBBC05]">
-            RASGOS DETECTADOS EN TU FOTO
+            SIMILITUD FACIAL & RASGOS DETECTADOS
           </h3>
         </div>
         <div className="flex items-center gap-1.5 px-2 py-0.5 bg-[#34A853]/20 border border-[#34A853] text-[#34A853] font-pixel text-[10px]">
@@ -92,49 +113,72 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
       </div>
 
       <p className="font-pixel text-[11px] text-gray-300 leading-relaxed">
-        El analizador extrajo tu tono de piel, peinado y ropa. Puedes ajustar cualquier detalle en tiempo real para ver cómo cambia tu personaje en 3D.
+        El analizador capturó la fisonomía de tu rostro (mandíbula, cejas, ojos, lentes, barba) y el color de tu ropa para vestir a tu personaje con <strong className="text-white">polera a juego y pantalón negro</strong>.
       </p>
 
-      {/* 1. Tono de Piel */}
-      <div className="p-3 bg-[#111216] border-2 border-black space-y-2">
+      {/* 1. Forma de Rostro y Tono de Piel */}
+      <div className="p-3 bg-[#111216] border-2 border-black space-y-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="w-4 h-4 border border-black inline-block rounded-xs shadow-[1px_1px_0_#000]" style={{ backgroundColor: features.skinColor }} />
-            <span className="font-pixel text-xs text-white">TONO DE PIEL:</span>
+            <span className="w-4 h-4 border border-black inline-block shadow-[1px_1px_0_#000]" style={{ backgroundColor: features.skinColor }} />
+            <span className="font-pixel text-xs text-white">FORMA DE ROSTRO & TEZ:</span>
           </div>
           <span className="font-pixel-heading text-[10px] text-[#FBBC05]">{features.skinToneName}</span>
         </div>
 
-        {/* Quick color chips */}
-        <div className="flex items-center gap-2 pt-1 flex-wrap">
-          {skinPresets.map(p => (
-            <button
-              key={p.name}
-              onClick={() => updateFeature('skinColor', p.color)}
-              className={`w-6 h-6 border-2 ${features.skinColor.toLowerCase() === p.color.toLowerCase() ? 'border-white scale-110' : 'border-black'} shadow-[2px_2px_0_#000]`}
-              style={{ backgroundColor: p.color }}
-              title={p.name}
-            />
-          ))}
-          {/* Custom color input */}
-          <label className="flex items-center gap-1 cursor-pointer font-pixel text-[9px] text-gray-400 ml-auto">
-            <span>Selector:</span>
-            <input
-              type="color"
-              value={features.skinColor}
-              onChange={(e) => updateFeature('skinColor', e.target.value)}
-              className="w-6 h-6 p-0 border border-black cursor-pointer bg-transparent"
-            />
-          </label>
+        {/* Face shape chips */}
+        <div>
+          <div className="font-pixel text-[10px] text-gray-400 mb-1">Estructura Facial:</div>
+          <div className="grid grid-cols-4 gap-1">
+            {faceShapes.map(f => (
+              <button
+                key={f.id}
+                onClick={() => {
+                  updateFeature('faceShape', f.id);
+                  updateFeature('faceShapeName', f.label);
+                }}
+                className={`pixel-btn text-[9px] py-1 px-1 ${
+                  features.faceShape === f.id ? 'pixel-btn-yellow' : 'pixel-btn-dark'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Quick skin color chips */}
+        <div>
+          <div className="font-pixel text-[10px] text-gray-400 mb-1">Tono de Piel:</div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {skinPresets.map(p => (
+              <button
+                key={p.name}
+                onClick={() => updateFeature('skinColor', p.color)}
+                className={`w-6 h-6 border-2 ${features.skinColor.toLowerCase() === p.color.toLowerCase() ? 'border-white scale-110' : 'border-black'} shadow-[2px_2px_0_#000]`}
+                style={{ backgroundColor: p.color }}
+                title={p.name}
+              />
+            ))}
+            <label className="flex items-center gap-1 cursor-pointer font-pixel text-[9px] text-gray-400 ml-auto">
+              <span>Selector:</span>
+              <input
+                type="color"
+                value={features.skinColor}
+                onChange={(e) => updateFeature('skinColor', e.target.value)}
+                className="w-6 h-6 p-0 border border-black cursor-pointer bg-transparent"
+              />
+            </label>
+          </div>
         </div>
       </div>
 
-      {/* 2. Cabello y Peinado */}
-      <div className="p-3 bg-[#111216] border-2 border-black space-y-3">
+      {/* 2. Cabello, Peinado & Flequillo */}
+      <div className="p-3 bg-[#111216] border-2 border-black space-y-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Scissors size={14} className="text-[#EA4335]" />
-            <span className="font-pixel text-xs text-white">ESTILO DE PEINADO:</span>
+            <span className="font-pixel text-xs text-white">CABELLO & PEINADO:</span>
           </div>
           <span className="font-pixel-heading text-[10px] text-[#EA4335]">{features.hairStyleName}</span>
         </div>
@@ -155,6 +199,24 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
               {s.label}
             </button>
           ))}
+        </div>
+
+        {/* Bangs Style */}
+        <div>
+          <div className="font-pixel text-[10px] text-gray-400 mb-1">Caída / Frente:</div>
+          <div className="grid grid-cols-4 gap-1">
+            {bangsStyles.map(b => (
+              <button
+                key={b.id}
+                onClick={() => updateFeature('hairBangs', b.id)}
+                className={`pixel-btn text-[8px] py-1 px-1 ${
+                  features.hairBangs === b.id ? 'pixel-btn-red' : 'pixel-btn-dark'
+                }`}
+              >
+                {b.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Hair color chips */}
@@ -183,63 +245,55 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
         </div>
       </div>
 
-      {/* 3. Ropa y Prendas */}
-      <div className="p-3 bg-[#111216] border-2 border-black space-y-3">
+      {/* 3. Ojos & Cejas */}
+      <div className="p-3 bg-[#111216] border-2 border-black space-y-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Shirt size={14} className="text-[#4285F4]" />
-            <span className="font-pixel text-xs text-white">ROPA Y COLOR:</span>
+            <Eye size={14} className="text-[#34A853]" />
+            <span className="font-pixel text-xs text-white">OJOS & CEJAS:</span>
           </div>
-          <span className="font-pixel-heading text-[10px] text-[#4285F4]">{features.clothingTypeName}</span>
+          <span className="font-pixel-heading text-[10px] text-[#34A853]">{features.eyeColorName}</span>
         </div>
 
-        {/* Clothing type buttons */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
-          {clothingTypes.map(c => (
+        {/* Eye color chips */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-pixel text-[10px] text-gray-400">Iris:</span>
+          {eyeColors.map(ec => (
             <button
-              key={c.id}
+              key={ec.name}
               onClick={() => {
-                updateFeature('clothingType', c.id);
-                updateFeature('clothingTypeName', c.label);
+                updateFeature('eyeColor', ec.color);
+                updateFeature('eyeColorName', ec.name);
               }}
-              className={`pixel-btn text-[9px] py-1.5 px-1 truncate ${
-                features.clothingType === c.id ? 'pixel-btn-blue' : 'pixel-btn-dark'
-              }`}
-            >
-              {c.label}
-            </button>
+              className={`w-5 h-5 border-2 ${features.eyeColor.toLowerCase() === ec.color.toLowerCase() ? 'border-white scale-110' : 'border-black'} shadow-[1px_1px_0_#000]`}
+              style={{ backgroundColor: ec.color }}
+              title={ec.name}
+            />
           ))}
         </div>
 
-        {/* Clothing color chips */}
+        {/* Eyebrow thickness */}
         <div>
-          <div className="font-pixel text-[10px] text-gray-400 mb-1">Color de Prenda:</div>
-          <div className="flex items-center gap-2 flex-wrap">
-            {clothPresets.map(c => (
+          <div className="font-pixel text-[10px] text-gray-400 mb-1">Cejas:</div>
+          <div className="grid grid-cols-3 gap-1">
+            {eyebrowOptions.map(eb => (
               <button
-                key={c.name}
-                onClick={() => updateFeature('clothingColor', c.color)}
-                className={`w-6 h-6 border-2 ${features.clothingColor.toLowerCase() === c.color.toLowerCase() ? 'border-white scale-110' : 'border-black'} shadow-[2px_2px_0_#000]`}
-                style={{ backgroundColor: c.color }}
-                title={c.name}
-              />
+                key={eb.id}
+                onClick={() => updateFeature('eyebrowThickness', eb.id)}
+                className={`pixel-btn text-[9px] py-1 px-1 ${
+                  features.eyebrowThickness === eb.id ? 'pixel-btn-green' : 'pixel-btn-dark'
+                }`}
+              >
+                {eb.label}
+              </button>
             ))}
-            <label className="flex items-center gap-1 cursor-pointer font-pixel text-[9px] text-gray-400 ml-auto">
-              <span>Selector:</span>
-              <input
-                type="color"
-                value={features.clothingColor}
-                onChange={(e) => updateFeature('clothingColor', e.target.value)}
-                className="w-6 h-6 p-0 border border-black cursor-pointer bg-transparent"
-              />
-            </label>
           </div>
         </div>
       </div>
 
-      {/* 4. Rasgos Adicionales (Lentes / Barba) */}
+      {/* 4. Lentes & Barba */}
       <div className="p-3 bg-[#111216] border-2 border-black space-y-3">
-        <div className="font-pixel text-xs text-white">RASGOS FACIALES DETECTADOS:</div>
+        <div className="font-pixel text-xs text-white">LENTES & BARBA:</div>
 
         <div className="grid grid-cols-2 gap-2">
           <button
@@ -284,10 +338,51 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
         )}
       </div>
 
-      {/* 5. Accesorios en el Personaje */}
+      {/* 5. Ropa (Strictly Polera + Pantalón Negro) */}
+      <div className="p-3 bg-[#111216] border-2 border-black space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Shirt size={14} className="text-[#4285F4]" />
+            <span className="font-pixel text-xs text-white">POLERA & PANTALÓN:</span>
+          </div>
+          <span className="font-pixel-heading text-[10px] text-[#4285F4]">{features.clothingColorName}</span>
+        </div>
+
+        <div className="text-[10px] font-pixel text-gray-300">
+          👕 <strong className="text-white">Polera:</strong> Color extraído de tu foto. <br />
+          👖 <strong className="text-white">Pantalón:</strong> Siempre Negro.
+        </div>
+
+        {/* Clothing color chips */}
+        <div>
+          <div className="font-pixel text-[10px] text-gray-400 mb-1">Color de la Polera:</div>
+          <div className="flex items-center gap-2 flex-wrap">
+            {clothPresets.map(c => (
+              <button
+                key={c.name}
+                onClick={() => updateFeature('clothingColor', c.color)}
+                className={`w-6 h-6 border-2 ${features.clothingColor.toLowerCase() === c.color.toLowerCase() ? 'border-white scale-110' : 'border-black'} shadow-[2px_2px_0_#000]`}
+                style={{ backgroundColor: c.color }}
+                title={c.name}
+              />
+            ))}
+            <label className="flex items-center gap-1 cursor-pointer font-pixel text-[9px] text-gray-400 ml-auto">
+              <span>Selector:</span>
+              <input
+                type="color"
+                value={features.clothingColor}
+                onChange={(e) => updateFeature('clothingColor', e.target.value)}
+                className="w-6 h-6 p-0 border border-black cursor-pointer bg-transparent"
+              />
+            </label>
+          </div>
+        </div>
+      </div>
+
+      {/* 6. Accesorios del Personaje */}
       <div className="pt-2 border-t-2 border-black/60">
         <label className="block font-pixel text-xs text-gray-300 mb-2">
-          ACCESORIO DEL PERSONAJE:
+          ACCESORIO:
         </label>
         <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
           {[
@@ -316,7 +411,7 @@ export const DetectionReviewCard: React.FC<DetectionReviewCardProps> = ({
       </div>
 
       {/* Retake button */}
-      <div className="pt-3 border-t-2 border-black/60">
+      <div className="pt-2 border-t-2 border-black/60">
         <button
           onClick={() => {
             soundManager.playClick();

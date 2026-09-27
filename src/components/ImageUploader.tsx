@@ -138,7 +138,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
             </div>
             <div>
               <div className="font-pixel-heading text-[10px] text-white">DEV WARM</div>
-              <div className="font-pixel text-[9px] text-[#4285F4]">Hoodie Azul</div>
+              <div className="font-pixel text-[9px] text-[#4285F4]">Polera Azul</div>
             </div>
           </button>
 
@@ -151,7 +151,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
             </div>
             <div>
               <div className="font-pixel-heading text-[10px] text-white">DEV LIGHT</div>
-              <div className="font-pixel text-[9px] text-[#EA4335]">Chaqueta Roja</div>
+              <div className="font-pixel text-[9px] text-[#EA4335]">Polera Roja + Lentes</div>
             </div>
           </button>
 
@@ -164,7 +164,7 @@ export const ImageUploader: React.FC<ImageUploaderProps> = ({
             </div>
             <div>
               <div className="font-pixel-heading text-[10px] text-white">DEV DEEP</div>
-              <div className="font-pixel text-[9px] text-[#34A853]">Polera Verde</div>
+              <div className="font-pixel text-[9px] text-[#34A853]">Polera Verde + Barba</div>
             </div>
           </button>
         </div>
